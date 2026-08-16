@@ -3,10 +3,22 @@ const isLocalHostname =
   typeof window !== "undefined" &&
   ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 
+function isLocalApiBaseUrl(value: string | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  return /^https?:\/\/(localhost|127\.0\.0\.1|::1)(:\d+)?\/?/i.test(value);
+}
+
 const rawApiBaseUrl =
-  import.meta.env.PROD && !isLocalHostname
-    ? "/api"
-    : configuredApiBaseUrl || "http://localhost:8787/api";
+  isLocalHostname
+    ? isLocalApiBaseUrl(configuredApiBaseUrl)
+      ? configuredApiBaseUrl
+      : "http://localhost:8787/api"
+    : import.meta.env.PROD
+      ? "/api"
+      : configuredApiBaseUrl || "http://localhost:8787/api";
 
 export const apiBaseUrl = rawApiBaseUrl.replace(/\/+$/, "");
 

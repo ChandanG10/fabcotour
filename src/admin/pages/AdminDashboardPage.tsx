@@ -848,6 +848,19 @@ export default function AdminDashboardPage() {
                 Logout
               </button>
             </div>
+            <div className="border-t border-black/8 px-4 py-3 sm:px-6 lg:hidden">
+              <select
+                value={activeSection}
+                onChange={(event) => setActiveSection(event.target.value as DashboardSection)}
+                className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold outline-none"
+              >
+                {sections.map((section) => (
+                  <option key={section.id} value={section.id}>
+                    {section.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </header>
 
           <main className="px-4 py-6 sm:px-6 lg:px-8">
@@ -911,7 +924,80 @@ export default function AdminDashboardPage() {
                       Search
                     </button>
                   </div>
-                  <div className="overflow-hidden rounded-[24px] border border-black/8 bg-white">
+                  <div className="space-y-4 md:hidden">
+                    {visibleProducts.map((product) => (
+                      <div key={product.id} className="rounded-[24px] border border-black/8 bg-white p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-lg font-semibold leading-tight">{product.name}</div>
+                            <div className="mt-1 text-xs text-brand-black/52">{product.sku}</div>
+                          </div>
+                          <div className="shrink-0 rounded-full bg-[#f8f1e3] px-3 py-1 text-xs font-semibold capitalize">
+                            {product.audience}
+                          </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                          <div className="rounded-2xl bg-[#f8f1e3] px-3 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-black/45">Price</p>
+                            <p className="mt-1 font-semibold">₹{Number(product.price).toLocaleString("en-IN")}</p>
+                          </div>
+                          <div className="rounded-2xl bg-[#f8f1e3] px-3 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-black/45">Stock</p>
+                            <p className="mt-1 font-semibold">{product.stock}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                          {product.isFeatured ? <FlagPill label="Featured" /> : null}
+                          {product.isNewArrival ? <FlagPill label="New" /> : null}
+                          {product.isBestseller ? <FlagPill label="Bestseller" /> : null}
+                          {product.isArchived ? <FlagPill label="Archived" tone="dark" /> : null}
+                        </div>
+                        <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-4 py-3 text-sm font-semibold"
+                            onClick={() => setProductForm(toProductForm(product))}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-4 py-3 text-sm font-semibold"
+                            onClick={() =>
+                              void runAction("archive-product", async () => {
+                                await adminService.archiveProduct(product.id, !product.isArchived);
+                                await loadProducts();
+                              })
+                            }
+                          >
+                            <Archive className="h-4 w-4" />
+                            {product.isArchived ? "Unarchive" : "Archive"}
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 sm:col-span-2"
+                            onClick={() =>
+                              setConfirmState({
+                                title: "Delete product",
+                                description: `This removes ${product.name} from the storefront and soft-deletes its record.`,
+                                onConfirm: async () => {
+                                  await adminService.deleteProduct(product.id);
+                                  toast.success("Product deleted.");
+                                  await loadProducts();
+                                  await loadDashboard();
+                                }
+                              })
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden overflow-hidden rounded-[24px] border border-black/8 bg-white md:block">
                     <div className="overflow-x-auto">
                       <table className="min-w-full text-left text-sm">
                         <thead className="bg-[#f8f1e3] text-brand-black/68">
