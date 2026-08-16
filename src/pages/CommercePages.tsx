@@ -88,7 +88,7 @@ export function CartPage() {
   return (
     <>
       <Seo title="Shopping Bag" description="Review cart items, apply coupons, save for later and move into the multi-step checkout flow." path="/cart" />
-      <div className="container-shell py-8 pb-28">
+      <div className="container-shell py-8 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-28">
         <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Cart" }]} />
         <SectionIntro eyebrow="Shopping features" title="Your bag" description="Update quantities, switch variants and stage purchases before checkout." />
         {cartRows.length === 0 ? (
@@ -102,7 +102,7 @@ export function CartPage() {
             <div className="space-y-5">
               {cartRows.map((row) =>
                 row.product ? (
-                  <article key={row.item.id} className="rounded-[28px] bg-white p-5 shadow-card">
+                  <article key={row.item.id} className="overflow-hidden rounded-[28px] bg-white p-5 shadow-card">
                     <div className="flex flex-col gap-5 md:flex-row">
                       <AssetImage
                         src={row.product.images[0]}
@@ -112,14 +112,16 @@ export function CartPage() {
                         imageClassName="h-40 w-36 rounded-[24px] object-cover"
                         fallbackClassName="h-40 w-36 rounded-[24px]"
                       />
-                      <div className="flex-1">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <h2 className="font-heading text-2xl font-bold">{row.product.name}</h2>
+                          <div className="min-w-0 flex-1">
+                            <h2 className="font-heading text-[2rem] font-bold leading-[1.05] sm:text-2xl">
+                              {row.product.name}
+                            </h2>
                             <p className="mt-1 text-sm text-brand-black/55">{row.variant?.color} • {row.variant?.size}</p>
                             {row.item.customization ? <p className="mt-2 text-sm text-brand-success">Custom design attached</p> : null}
                           </div>
-                          <button type="button" onClick={() => removeFromCart(row.item.id)} className="rounded-full border border-black/10 p-2">
+                          <button type="button" onClick={() => removeFromCart(row.item.id)} className="shrink-0 rounded-full border border-black/10 p-2">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -144,11 +146,11 @@ export function CartPage() {
             <aside className="space-y-5">
               <div className="rounded-[28px] bg-white p-6 shadow-card">
                 <h2 className="font-heading text-2xl font-bold">Coupon codes</h2>
-                <div className="mt-4 flex gap-3">
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                   <input value={couponCode} onChange={(event) => setCouponCode(event.target.value)} placeholder="Enter code" className="min-w-0 flex-1 rounded-full border border-black/10 px-4 py-3 outline-none" />
                   <button
                     type="button"
-                    className="button-secondary"
+                    className="button-secondary w-full shrink-0 sm:w-auto"
                     onClick={() => {
                       if (applyCoupon(couponCode)) {
                         toast.success("Coupon applied");
@@ -177,9 +179,9 @@ export function CartPage() {
 
               <div className="rounded-[28px] bg-white p-6 shadow-card">
                 <h2 className="font-heading text-2xl font-bold">Shipping estimate</h2>
-                <div className="mt-4 flex gap-3">
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                   <input placeholder="Enter PIN code" className="min-w-0 flex-1 rounded-full border border-black/10 px-4 py-3 outline-none" />
-                  <button type="button" className="button-secondary">Check</button>
+                  <button type="button" className="button-secondary w-full shrink-0 sm:w-auto">Check</button>
                 </div>
                 <p className="mt-3 text-sm text-brand-black/60">Eligible orders above Rs. 1,999 ship free.</p>
               </div>
@@ -187,13 +189,13 @@ export function CartPage() {
               <div className="rounded-[28px] bg-brand-black p-6 text-white shadow-card">
                 <h2 className="font-heading text-2xl font-bold">Order summary</h2>
                 <div className="mt-5 space-y-3 text-sm text-white/76">
-                  <div className="flex justify-between"><span>Subtotal</span><span>{currencyFormatter.format(subtotal)}</span></div>
-                  <div className="flex justify-between"><span>Shipping</span><span>{shipping === 0 ? "Free" : currencyFormatter.format(shipping)}</span></div>
-                  <div className="flex justify-between"><span>Discount</span><span>-{currencyFormatter.format(discount)}</span></div>
+                  <div className="flex items-start justify-between gap-4"><span>Subtotal</span><span className="shrink-0 text-right">{currencyFormatter.format(subtotal)}</span></div>
+                  <div className="flex items-start justify-between gap-4"><span>Shipping</span><span className="shrink-0 text-right">{shipping === 0 ? "Free" : currencyFormatter.format(shipping)}</span></div>
+                  <div className="flex items-start justify-between gap-4"><span>Discount</span><span className="shrink-0 text-right">-{currencyFormatter.format(discount)}</span></div>
                 </div>
-                <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
+                <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:items-end sm:justify-between">
                   <span className="font-semibold">Total</span>
-                  <span className="font-heading text-3xl font-extrabold">{currencyFormatter.format(total)}</span>
+                  <span className="font-heading text-4xl font-extrabold leading-none sm:text-3xl">{currencyFormatter.format(total)}</span>
                 </div>
                 <button type="button" className="button-primary mt-6 w-full bg-brand-yellow text-brand-black hover:bg-brand-yellow/90" onClick={() => navigate("/checkout")}>
                   Proceed to checkout
