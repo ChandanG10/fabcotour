@@ -1,8 +1,7 @@
 import mysql from "mysql2/promise";
-import { env } from "../config/env.js";
+import { env, isProduction } from "../config/env.js";
 
 declare global {
-  // eslint-disable-next-line no-var
   var __fabcouturePool__: mysql.Pool | undefined;
 }
 
@@ -13,7 +12,14 @@ function createPool() {
     user: env.DB_USER,
     password: env.DB_PASSWORD,
     database: env.DB_NAME,
-    connectionLimit: 10,
+    // Every Vercel function instance owns a pool. Keeping this small prevents
+    // concurrent instances from exhausting the database connection allowance.
+    connectionLimit: isProduction ? 2 : 10,
+    maxIdle: isProduction ? 2 : 10,
+    idleTimeout: 60_000,
+    waitForConnections: true,
+    queueLimit: 0,
+    connectTimeout: 10_000,
     namedPlaceholders: true,
     decimalNumbers: true,
     enableKeepAlive: true,

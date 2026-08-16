@@ -65,6 +65,17 @@ export function createApp() {
   const app = express();
 
   app.set("trust proxy", 1);
+  app.disable("etag");
+  app.use((_request, response, next) => {
+    // CORS varies by request Origin. Do not let browsers or Vercel reuse a
+    // response (and its Access-Control-Allow-Origin value) for another origin.
+    response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    response.setHeader("CDN-Cache-Control", "no-store");
+    response.setHeader("Vercel-CDN-Cache-Control", "no-store");
+    response.setHeader("Pragma", "no-cache");
+    response.setHeader("Expires", "0");
+    next();
+  });
   app.options(/.*/, cors(corsOptions));
   app.use(cors(corsOptions));
   app.use(helmet());
@@ -88,11 +99,25 @@ export function createApp() {
   });
 
   app.get("/api/health", async (_request, response) => {
-    await pool.query("SELECT 1");
-    response.json({
-      success: true,
-      message: "Fabcoutour API is running"
-    });
+    try {
+      await pool.query("SELECT 1");
+      response.json({
+        success: true,
+        message: "Fabcoutour API is running"
+      });
+    } catch (error) {
+      const databaseCode =
+        typeof error === "object" && error !== null && "code" in error
+          ? String(error.code)
+          : "DB_UNAVAILABLE";
+
+      console.error("Database health check failed", { code: databaseCode });
+      response.status(503).json({
+        success: false,
+        message: "Database is unavailable.",
+        code: databaseCode
+      });
+    }
   });
 
   app.use("/api/admin/auth", authRouter);
