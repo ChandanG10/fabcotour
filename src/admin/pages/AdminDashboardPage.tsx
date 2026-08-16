@@ -123,6 +123,16 @@ type ConfirmState = {
   onConfirm: () => Promise<void> | void;
 } | null;
 
+const imageUploadAccept = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
+const maxImageUploadBytes = 5 * 1024 * 1024;
+const supportedImageMimeTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/x-webp"]);
+
+function isSupportedImageFile(file: File) {
+  const supportedExtension = /\.(jpe?g|png|webp)$/i.test(file.name);
+  const genericMimeType = !file.type || file.type === "application/octet-stream";
+  return supportedExtension && (genericMimeType || supportedImageMimeTypes.has(file.type.toLowerCase()));
+}
+
 const basicCategoryBlueprint: Array<{
   audience: "men" | "women" | "kids";
   parent: { name: string; slug: string; description: string };
@@ -578,9 +588,20 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    const selectedFiles = Array.from(files);
+    if (selectedFiles.some((file) => !isSupportedImageFile(file))) {
+      toast.error("Only valid JPG, PNG and WebP images can be uploaded.");
+      return;
+    }
+
+    if (selectedFiles.some((file) => file.size > maxImageUploadBytes)) {
+      toast.error("Each image must be 5 MB or smaller.");
+      return;
+    }
+
     try {
       await runAction("upload-images", async () => {
-        const uploads = await adminService.uploadImages(Array.from(files));
+        const uploads = await adminService.uploadImages(selectedFiles);
         onApply(
           uploads.map((upload, index) => ({
             imageUrl: upload.url,
@@ -1318,7 +1339,7 @@ export default function AdminDashboardPage() {
                         Upload
                         <input
                           type="file"
-                          accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+                          accept={imageUploadAccept}
                           multiple
                           className="hidden"
                           onChange={(event) =>
@@ -1489,7 +1510,7 @@ export default function AdminDashboardPage() {
                         <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-black/10 px-4 py-2.5 text-sm font-semibold">
                           <ImagePlus className="h-4 w-4" />
                           Upload
-                          <input type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => void handleImageUpload(event.target.files, (uploads) => setCategoryForm((state) => ({ ...state, imageUrl: uploads[0]?.imageUrl ?? "", imagePublicId: uploads[0]?.publicId ?? "" })))} />
+                          <input type="file" accept={imageUploadAccept} className="hidden" onChange={(event) => void handleImageUpload(event.target.files, (uploads) => setCategoryForm((state) => ({ ...state, imageUrl: uploads[0]?.imageUrl ?? "", imagePublicId: uploads[0]?.publicId ?? "" })))} />
                         </label>
                       </div>
                       {categoryForm.imageUrl ? <img src={categoryForm.imageUrl} alt="Category" className="mt-4 aspect-[16/10] w-full rounded-[20px] object-cover" /> : null}
@@ -1532,7 +1553,7 @@ export default function AdminDashboardPage() {
                                 Upload Hero Images
                                 <input
                                   type="file"
-                                  accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+                                  accept={imageUploadAccept}
                                   multiple
                                   className="hidden"
                                   onChange={(event) =>
@@ -1637,7 +1658,7 @@ export default function AdminDashboardPage() {
                                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-black/10 px-4 py-2.5 text-sm font-semibold">
                                   <ImagePlus className="h-4 w-4" />
                                   Upload
-                                  <input type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => void handleImageUpload(event.target.files, (uploads) => setHomepageForm((state) => ({ ...state, categoryCards: state.categoryCards.map((entry, entryIndex) => entryIndex === index ? { ...entry, imageUrl: uploads[0]?.imageUrl ?? null, imagePublicId: uploads[0]?.publicId ?? null } : entry) })))} />
+                                  <input type="file" accept={imageUploadAccept} className="hidden" onChange={(event) => void handleImageUpload(event.target.files, (uploads) => setHomepageForm((state) => ({ ...state, categoryCards: state.categoryCards.map((entry, entryIndex) => entryIndex === index ? { ...entry, imageUrl: uploads[0]?.imageUrl ?? null, imagePublicId: uploads[0]?.publicId ?? null } : entry) })))} />
                                 </label>
                                 <IconButton icon={Trash2} label="Remove" onClick={() => setHomepageForm((state) => ({ ...state, categoryCards: state.categoryCards.filter((_, entryIndex) => entryIndex !== index) }))} />
                               </div>
