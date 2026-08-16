@@ -10,9 +10,10 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "dist-server",
-    "rootDir": "server",
+    "outDir": "dist",
+    "rootDir": ".",
     "types": ["node"]
   },
-  "include": ["server/src/**/*.ts", "server/api/**/*.ts", "server/scripts/**/*.ts"]
+  "include": ["src/**/*.ts", "api/**/*.ts", "scripts/**/*.ts"]
 }
+
