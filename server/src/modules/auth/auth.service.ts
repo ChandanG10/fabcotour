@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt, { type SignOptions } from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
 import type { RowDataPacket } from "mysql2";
-import type { Response } from "express";
+import type { CookieOptions, Response } from "express";
 import { env, isProduction } from "../../config/env.js";
 import { pool } from "../../db/pool.js";
 import { HttpError } from "../../utils/http.js";
@@ -27,6 +27,15 @@ interface AdminRow extends RowDataPacket {
 }
 
 const cookieName = "fab_admin_token";
+
+function getAuthCookieOptions(): CookieOptions {
+  return {
+    httpOnly: true,
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
+    maxAge: 24 * 60 * 60 * 1000
+  };
+}
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 12);
@@ -100,20 +109,12 @@ export function signAdminToken(admin: AuthenticatedAdmin) {
 }
 
 export function setAuthCookie(response: Response, token: string) {
-  response.cookie(cookieName, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: isProduction,
-    maxAge: 24 * 60 * 60 * 1000
-  });
+  response.cookie(cookieName, token, getAuthCookieOptions());
 }
 
 export function clearAuthCookie(response: Response) {
-  response.clearCookie(cookieName, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: isProduction
-  });
+  const { maxAge: _maxAge, ...cookieOptions } = getAuthCookieOptions();
+  response.clearCookie(cookieName, cookieOptions);
 }
 
 export function verifyToken(token: string) {
