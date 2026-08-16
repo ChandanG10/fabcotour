@@ -33,11 +33,17 @@ function normalizeOrigin(origin: string) {
   return origin.trim().replace(/\/+$/, "");
 }
 
+function getConfiguredOrigins() {
+  return env.APP_ORIGIN.split(",")
+    .map((origin) => normalizeOrigin(origin))
+    .filter(Boolean);
+}
+
 function isAllowedOrigin(origin: string) {
   const normalizedOrigin = normalizeOrigin(origin);
-  const configuredOrigin = normalizeOrigin(env.APP_ORIGIN);
+  const configuredOrigins = getConfiguredOrigins();
 
-  if (normalizedOrigin === configuredOrigin) {
+  if (configuredOrigins.includes(normalizedOrigin)) {
     return true;
   }
 
@@ -121,4 +127,3 @@ export function createApp() {
 }
 
 export const app = createApp();
-
