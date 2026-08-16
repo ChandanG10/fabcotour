@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppShell } from "../components/layout/AppShell";
 import { LoadingState } from "../components/common/Ui";
 import { AdminAuthProvider, AdminEntryRedirect, ProtectedAdminRoute } from "../admin/AdminAuth";
@@ -28,36 +28,30 @@ function RouteFallback() {
   );
 }
 
+function AdminRouteShell() {
+  return (
+    <AdminAuthProvider>
+      <Outlet />
+    </AdminAuthProvider>
+  );
+}
+
 export function AppRouter() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
-        <Route
-          path="/admin"
-          element={
-            <AdminAuthProvider>
-              <AdminEntryRedirect />
-            </AdminAuthProvider>
-          }
-        />
-        <Route
-          path="/admin/login"
-          element={
-            <AdminAuthProvider>
-              <AdminLoginPage />
-            </AdminAuthProvider>
-          }
-        />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <AdminAuthProvider>
+        <Route element={<AdminRouteShell />}>
+          <Route path="/admin" element={<AdminEntryRedirect />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route
+            path="/admin/dashboard"
+            element={
               <ProtectedAdminRoute>
                 <AdminDashboardPage />
               </ProtectedAdminRoute>
-            </AdminAuthProvider>
-          }
-        />
+            }
+          />
+        </Route>
 
         <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />

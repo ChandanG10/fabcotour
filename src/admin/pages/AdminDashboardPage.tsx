@@ -363,7 +363,7 @@ function toCategoryForm(category: StoreCategory): CategoryFormState {
 }
 
 export default function AdminDashboardPage() {
-  const { admin, refresh, setAdmin } = useAdminAuth();
+  const { admin, loading, refresh, setAdmin } = useAdminAuth();
   const authFailureHandledRef = useRef(false);
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -444,6 +444,12 @@ export default function AdminDashboardPage() {
 
     return true;
   };
+
+  useEffect(() => {
+    if (admin) {
+      authFailureHandledRef.current = false;
+    }
+  }, [admin]);
 
   const loadDashboard = async () => {
     try {
@@ -548,6 +554,10 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
+    if (loading || !admin) {
+      return;
+    }
+
     void loadDashboard();
     void loadCategories();
     void loadHomepage();
@@ -557,7 +567,7 @@ export default function AdminDashboardPage() {
     void loadCoupons();
     void loadReviews();
     void loadEnquiries();
-  }, []);
+  }, [admin, loading]);
 
   const visibleProducts = productsData?.items ?? [];
 

@@ -9,7 +9,7 @@ import { useAdminAuth } from "../AdminAuth";
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setAdmin } = useAdminAuth();
+  const { refresh, setAdmin } = useAdminAuth();
   const [email, setEmail] = useState("admin@fabcouture.in");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,6 +22,7 @@ export default function AdminLoginPage() {
     try {
       const response = await adminService.login({ email, password });
       setAdmin(response.admin);
+      await refresh();
       toast.success("Admin login successful.");
       navigate(nextPath, { replace: true });
     } catch (error) {

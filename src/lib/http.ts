@@ -11,14 +11,21 @@ function isLocalApiBaseUrl(value: string | undefined) {
   return /^https?:\/\/(localhost|127\.0\.0\.1|::1)(:\d+)?\/?/i.test(value);
 }
 
-const rawApiBaseUrl =
-  isLocalHostname
-    ? isLocalApiBaseUrl(configuredApiBaseUrl)
+function resolveApiBaseUrl() {
+  if (isLocalHostname) {
+    return isLocalApiBaseUrl(configuredApiBaseUrl)
       ? configuredApiBaseUrl
-      : "http://localhost:8787/api"
-    : import.meta.env.PROD
-      ? "/api"
-      : configuredApiBaseUrl || "http://localhost:8787/api";
+      : "http://localhost:8787/api";
+  }
+
+  if (!configuredApiBaseUrl || isLocalApiBaseUrl(configuredApiBaseUrl)) {
+    return "/api";
+  }
+
+  return configuredApiBaseUrl;
+}
+
+const rawApiBaseUrl = resolveApiBaseUrl();
 
 export const apiBaseUrl = rawApiBaseUrl.replace(/\/+$/, "");
 
