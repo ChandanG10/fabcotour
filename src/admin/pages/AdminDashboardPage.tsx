@@ -23,7 +23,7 @@ import {
   Upload,
   Users
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoadingState } from "../../components/common/Ui";
 import { adminService } from "../../services/api";
@@ -364,6 +364,7 @@ function toCategoryForm(category: StoreCategory): CategoryFormState {
 
 export default function AdminDashboardPage() {
   const { admin, refresh, setAdmin } = useAdminAuth();
+  const authFailureHandledRef = useRef(false);
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -430,52 +431,120 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleAuthFailure = (error: unknown) => {
+    if (!(error instanceof ApiError) || error.status !== 401) {
+      return false;
+    }
+
+    if (!authFailureHandledRef.current) {
+      authFailureHandledRef.current = true;
+      setAdmin(null);
+      toast.error("Admin session expired. Please sign in again.");
+    }
+
+    return true;
+  };
+
   const loadDashboard = async () => {
-    const data = await adminService.dashboard();
-    setDashboardData(data);
+    try {
+      const data = await adminService.dashboard();
+      setDashboardData(data);
+    } catch (error) {
+      if (!handleAuthFailure(error)) {
+        toast.error(error instanceof Error ? error.message : "Dashboard could not be loaded.");
+      }
+    }
   };
 
   const loadProducts = async () => {
-    const data = await adminService.listProducts(1, productSearch);
-    setProductsData(data);
+    try {
+      const data = await adminService.listProducts(1, productSearch);
+      setProductsData(data);
+    } catch (error) {
+      if (!handleAuthFailure(error)) {
+        toast.error(error instanceof Error ? error.message : "Products could not be loaded.");
+      }
+    }
   };
 
   const loadCategories = async () => {
-    const data = await adminService.listCategories(1);
-    setCategoriesData(data);
+    try {
+      const data = await adminService.listCategories(1);
+      setCategoriesData(data);
+    } catch (error) {
+      if (!handleAuthFailure(error)) {
+        toast.error(error instanceof Error ? error.message : "Categories could not be loaded.");
+      }
+    }
   };
 
   const loadHomepage = async () => {
-    const data = await adminService.getHomepage();
-    setHomepageData(data);
-    setHomepageForm(data);
+    try {
+      const data = await adminService.getHomepage();
+      setHomepageData(data);
+      setHomepageForm(data);
+    } catch (error) {
+      if (!handleAuthFailure(error)) {
+        toast.error(error instanceof Error ? error.message : "Homepage content could not be loaded.");
+      }
+    }
   };
 
   const loadOrders = async () => {
-    setOrdersData(await adminService.listOrders(1));
+    try {
+      setOrdersData(await adminService.listOrders(1));
+    } catch (error) {
+      if (!handleAuthFailure(error)) {
+        toast.error(error instanceof Error ? error.message : "Orders could not be loaded.");
+      }
+    }
   };
 
   const loadCustomers = async () => {
-    setCustomersData(await adminService.listCustomers(1, customerSearch));
+    try {
+      setCustomersData(await adminService.listCustomers(1, customerSearch));
+    } catch (error) {
+      if (!handleAuthFailure(error)) {
+        toast.error(error instanceof Error ? error.message : "Customers could not be loaded.");
+      }
+    }
   };
 
   const loadCoupons = async () => {
-    setCouponsData(await adminService.listCoupons(1));
+    try {
+      setCouponsData(await adminService.listCoupons(1));
+    } catch (error) {
+      if (!handleAuthFailure(error)) {
+        toast.error(error instanceof Error ? error.message : "Coupons could not be loaded.");
+      }
+    }
   };
 
   const loadReviews = async () => {
-    setReviewsData(await adminService.listReviews(1));
+    try {
+      setReviewsData(await adminService.listReviews(1));
+    } catch (error) {
+      if (!handleAuthFailure(error)) {
+        toast.error(error instanceof Error ? error.message : "Reviews could not be loaded.");
+      }
+    }
   };
 
   const loadEnquiries = async () => {
-    const [corporate, bulk, contact] = await Promise.all([
-      adminService.listEnquiries("corporate"),
-      adminService.listEnquiries("bulk"),
-      adminService.listEnquiries("contact")
-    ]);
-    setCorporateEnquiries(corporate.items);
-    setBulkEnquiries(bulk.items);
-    setContactEnquiries(contact.items);
+    try {
+      const [corporate, bulk, contact] = await Promise.all([
+        adminService.listEnquiries("corporate"),
+        adminService.listEnquiries("bulk"),
+        adminService.listEnquiries("contact")
+      ]);
+      setCorporateEnquiries(corporate.items);
+      setBulkEnquiries(bulk.items);
+      setContactEnquiries(contact.items);
+    } catch (error) {
+      if (!handleAuthFailure(error)) {
+        toast.error(error instanceof Error ? error.message : "Enquiries could not be loaded.");
+      }
+    }
   };
 
   useEffect(() => {
