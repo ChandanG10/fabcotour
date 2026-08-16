@@ -1,6 +1,6 @@
 import { LockKeyhole, Mail } from "lucide-react";
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { BrandLogo } from "../../components/common/BrandLogo";
 import { adminService } from "../../services/api";
@@ -8,23 +8,22 @@ import { useAdminAuth } from "../AdminAuth";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { refresh, setAdmin } = useAdminAuth();
+  const { setAdmin } = useAdminAuth();
   const [email, setEmail] = useState("admin@fabcouture.in");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const fallbackPath = "/admin/dashboard";
-  const nextPath = (location.state as { from?: string } | null)?.from ?? fallbackPath;
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     try {
-      const response = await adminService.login({ email, password });
-      setAdmin(response.admin);
-      await refresh();
+      await adminService.login({ email, password });
+      const session = await adminService.me();
+      if (!session.admin) {
+        throw new Error("The admin session could not be verified.");
+      }
+      setAdmin(session.admin);
       toast.success("Admin login successful.");
-      navigate(nextPath, { replace: true });
+      navigate("/admin/dashboard", { replace: true });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Login failed.");
     } finally {

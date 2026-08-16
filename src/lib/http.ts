@@ -1,4 +1,6 @@
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const configuredProductionApiBaseUrl = import.meta.env.VITE_PRODUCTION_API_BASE_URL?.trim();
+const fabCoutureProductionApiBaseUrl = "https://fabcotour.vercel.app/api";
 const isLocalHostname =
   typeof window !== "undefined" &&
   ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
@@ -13,16 +15,22 @@ function isLocalApiBaseUrl(value: string | undefined) {
 
 function resolveApiBaseUrl() {
   if (isLocalHostname) {
-    return isLocalApiBaseUrl(configuredApiBaseUrl)
-      ? configuredApiBaseUrl
-      : "http://localhost:8787/api";
+    return configuredApiBaseUrl || "http://localhost:8787/api";
   }
 
-  if (!configuredApiBaseUrl || isLocalApiBaseUrl(configuredApiBaseUrl)) {
-    return "/api";
+  if (configuredProductionApiBaseUrl) {
+    return configuredProductionApiBaseUrl;
   }
 
-  return configuredApiBaseUrl;
+  if (configuredApiBaseUrl && !isLocalApiBaseUrl(configuredApiBaseUrl)) {
+    return configuredApiBaseUrl;
+  }
+
+  if (typeof window !== "undefined" && window.location.hostname === "fabcouture.vertexsoftware.in") {
+    return fabCoutureProductionApiBaseUrl;
+  }
+
+  return "/api";
 }
 
 const rawApiBaseUrl = resolveApiBaseUrl();
@@ -67,6 +75,13 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
         ? (payload as { details?: unknown }).details
         : undefined;
     throw new ApiError(response.status, message, details);
+  }
+
+  if (!contentType.includes("application/json")) {
+    throw new ApiError(
+      502,
+      "The API returned a non-JSON response. Check the production API URL or reverse-proxy configuration."
+    );
   }
 
   return payload as T;

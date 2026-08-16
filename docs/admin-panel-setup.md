@@ -8,6 +8,7 @@ Required variables:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8787/api
+VITE_PRODUCTION_API_BASE_URL=https://fabcotour.vercel.app/api
 SERVER_PORT=8787
 NODE_ENV=development
 APP_ORIGIN=http://localhost:5173
@@ -121,7 +122,9 @@ npm run build:server
 
 ## Notes
 
-- Admin auth uses secure `httpOnly` cookies with `sameSite=lax`.
+- Admin auth uses the `admin_token` HTTP-only cookie. Production sets `Secure`,
+  `SameSite=None`, `Path=/`, and `Partitioned` so the Vercel API session works
+  from the storefront domain when third-party cookies are restricted.
 - No admin token is stored in `localStorage`.
 - Product/category/homepage image uploads go through Multer memory storage and Cloudinary.
 - The storefront homepage, shop, product page, customiser, cart lookups, and header search now load products from the backend API layer instead of the hard-coded catalog.

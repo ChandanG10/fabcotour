@@ -10,6 +10,7 @@ import { HttpError } from "../../utils/http.js";
 export interface AuthenticatedAdmin {
   id: string;
   email: string;
+  name: string;
   firstName: string;
   lastName: string;
   role: "super_admin" | "editor";
@@ -26,13 +27,18 @@ interface AdminRow extends RowDataPacket {
   must_change_password: number;
 }
 
-const cookieName = "fab_admin_token";
+const cookieName = "admin_token";
+const legacyCookieName = "fab_admin_token";
 
 function getAuthCookieOptions(): CookieOptions {
   return {
     httpOnly: true,
     sameSite: isProduction ? "none" : "lax",
     secure: isProduction,
+    // CHIPS keeps this cookie usable when the storefront and API are on
+    // different sites and the browser blocks ordinary third-party cookies.
+    partitioned: isProduction,
+    path: "/",
     maxAge: 24 * 60 * 60 * 1000
   };
 }
@@ -85,6 +91,7 @@ export async function authenticateAdmin(email: string, password: string) {
   return {
     id: admin.id,
     email: admin.email,
+    name: `${admin.first_name} ${admin.last_name}`.trim(),
     firstName: admin.first_name,
     lastName: admin.last_name,
     role: admin.role,
@@ -113,8 +120,10 @@ export function setAuthCookie(response: Response, token: string) {
 }
 
 export function clearAuthCookie(response: Response) {
-  const { maxAge: _maxAge, ...cookieOptions } = getAuthCookieOptions();
+  const cookieOptions = getAuthCookieOptions();
+  delete cookieOptions.maxAge;
   response.clearCookie(cookieName, cookieOptions);
+  response.clearCookie(legacyCookieName, cookieOptions);
 }
 
 export function verifyToken(token: string) {
@@ -142,6 +151,7 @@ export async function getAdminById(id: string) {
   return {
     id: admin.id,
     email: admin.email,
+    name: `${admin.first_name} ${admin.last_name}`.trim(),
     firstName: admin.first_name,
     lastName: admin.last_name,
     role: admin.role,
@@ -158,3 +168,4 @@ export async function changeAdminPassword(adminId: string, password: string) {
 }
 
 export const authCookieName = cookieName;
+export const legacyAuthCookieName = legacyCookieName;

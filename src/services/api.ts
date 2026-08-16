@@ -21,6 +21,7 @@ interface ItemResponse<T> {
 interface AdminProfile {
   id: string;
   email: string;
+  name: string;
   firstName: string;
   lastName: string;
   role: "super_admin" | "editor";
@@ -29,6 +30,9 @@ interface AdminProfile {
 
 async function fetchStoreCategories() {
   const response = await apiRequest<ListResponse<StoreCategory>>("/store/categories");
+  if (!Array.isArray(response.items)) {
+    throw new Error("The categories API returned an invalid response.");
+  }
   return response.items;
 }
 
@@ -42,6 +46,9 @@ async function fetchStoreProducts(params?: Record<string, string | number | bool
 
   const query = searchParams.toString();
   const response = await apiRequest<ListResponse<StoreProduct>>(`/store/products${query ? `?${query}` : ""}`);
+  if (!Array.isArray(response.items)) {
+    throw new Error("The products API returned an invalid response.");
+  }
   return response.items;
 }
 
@@ -132,7 +139,7 @@ export const accountService = {
 
 export const adminService = {
   login(payload: { email: string; password: string }) {
-    return apiRequest<{ admin: AdminProfile }>("/admin/auth/login", {
+    return apiRequest<{ success: true; admin: AdminProfile }>("/admin/auth/login", {
       method: "POST",
       body: JSON.stringify(payload)
     });
@@ -143,7 +150,7 @@ export const adminService = {
     });
   },
   me() {
-    return apiRequest<{ admin: AdminProfile }>("/admin/auth/me");
+    return apiRequest<{ success: true; admin: AdminProfile }>("/admin/auth/me");
   },
   changePassword(payload: { currentPassword: string; newPassword: string }) {
     return apiRequest<{ message: string }>("/admin/auth/change-password", {

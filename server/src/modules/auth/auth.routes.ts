@@ -31,6 +31,11 @@ const loginLimiter = rateLimit({
 
 export const authRouter = Router();
 
+authRouter.use((_request, response, next) => {
+  response.setHeader("Cache-Control", "no-store");
+  next();
+});
+
 authRouter.post(
   "/login",
   loginLimiter,
@@ -40,7 +45,7 @@ authRouter.post(
     const token = signAdminToken(admin);
 
     setAuthCookie(response, token);
-    response.json({ admin });
+    response.status(200).json({ success: true, admin });
   })
 );
 
@@ -56,7 +61,7 @@ authRouter.get(
   "/me",
   requireAdminAuth,
   asyncHandler(async (request, response) => {
-    response.json({ admin: request.admin });
+    response.status(200).json({ success: true, admin: request.admin });
   })
 );
 

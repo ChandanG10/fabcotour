@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { LoadingState } from "../components/common/Ui";
 import { adminService, type AdminProfile } from "../services/api";
@@ -14,8 +14,10 @@ interface AdminAuthContextValue {
 const AdminAuthContext = createContext<AdminAuthContextValue | null>(null);
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
+  const location = useLocation();
+  const sessionCheckStarted = useRef(false);
   const [admin, setAdmin] = useState<AdminProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(location.pathname !== "/admin/login");
 
   const refresh = async () => {
     setLoading(true);
@@ -30,7 +32,16 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    if (location.pathname === "/admin/login" || sessionCheckStarted.current) {
+      setLoading(false);
+      return;
+    }
+
+    sessionCheckStarted.current = true;
     void refresh();
+    // Only restore a session when the admin route shell first mounts. Login
+    // verifies its newly-created session explicitly before navigating.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

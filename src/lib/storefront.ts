@@ -124,8 +124,16 @@ export interface HomepagePayload {
 }
 
 export function normalizeHomepagePayload(payload: HomepagePayload): HomepagePayload {
-  const heroImages = Array.isArray(payload.hero?.images)
-    ? payload.hero.images
+  const hero = payload?.hero ?? ({} as HomepagePayload["hero"]);
+  const categoryCards = Array.isArray(payload?.categoryCards) ? payload.categoryCards : [];
+  const benefits = Array.isArray(payload?.benefits) ? payload.benefits : [];
+  const featuredSection = payload?.featuredSection ?? ({} as HomepagePayload["featuredSection"]);
+  const newArrivalsSection = payload?.newArrivalsSection ?? ({} as HomepagePayload["newArrivalsSection"]);
+  const siteSettings = payload?.siteSettings ?? ({} as HomepagePayload["siteSettings"]);
+  const announcementBar = siteSettings.announcementBar ?? { enabled: true, items: [] };
+
+  const heroImages = Array.isArray(hero.images)
+    ? hero.images
         .filter((image) => image?.imageUrl)
         .map((image, index) => ({
           id: image.id || `hero-image-${index + 1}`,
@@ -137,11 +145,11 @@ export function normalizeHomepagePayload(payload: HomepagePayload): HomepagePayl
     : [];
 
   const legacyHeroImage =
-    payload.hero?.imageUrl
+    hero.imageUrl
       ? [{
           id: "hero-image-1",
-          imageUrl: payload.hero.imageUrl,
-          imagePublicId: payload.hero.imagePublicId ?? null,
+          imageUrl: hero.imageUrl,
+          imagePublicId: hero.imagePublicId ?? null,
           sortOrder: 0
         }]
       : [];
@@ -152,10 +160,40 @@ export function normalizeHomepagePayload(payload: HomepagePayload): HomepagePayl
   return {
     ...payload,
     hero: {
-      ...payload.hero,
+      ...hero,
+      heading: hero.heading ?? "Wear Your Imagination.",
+      description: hero.description ?? "Custom apparel, standout prints and thoughtful corporate gifts—made uniquely yours.",
+      primaryButtonLabel: hero.primaryButtonLabel ?? "Start Customising",
+      primaryButtonLink: hero.primaryButtonLink ?? "/customise",
+      secondaryButtonLabel: hero.secondaryButtonLabel ?? "Shop New Arrivals",
+      secondaryButtonLink: hero.secondaryButtonLink ?? "/shop",
+      badge: hero.badge ?? "DESIGNED BY YOU • MADE BY FAB COUTURE",
       images,
       imageUrl: primaryImage?.imageUrl ?? null,
       imagePublicId: primaryImage?.imagePublicId ?? null
+    },
+    categoryCards,
+    benefits,
+    featuredSection: {
+      title: featuredSection.title ?? "Featured Products",
+      description: featuredSection.description ?? "Editor-curated picks",
+      productIds: Array.isArray(featuredSection.productIds) ? featuredSection.productIds : []
+    },
+    newArrivalsSection: {
+      title: newArrivalsSection.title ?? "New Arrivals",
+      description: newArrivalsSection.description ?? "Fresh drops",
+      productIds: Array.isArray(newArrivalsSection.productIds) ? newArrivalsSection.productIds : []
+    },
+    siteSettings: {
+      siteName: siteSettings.siteName ?? "FAB COUTURE",
+      announcementBar: {
+        enabled: announcementBar.enabled ?? true,
+        items: Array.isArray(announcementBar.items) ? announcementBar.items : []
+      },
+      supportEmail: siteSettings.supportEmail ?? null,
+      supportPhone: siteSettings.supportPhone ?? null,
+      businessHours: siteSettings.businessHours ?? null,
+      socialLinks: siteSettings.socialLinks && typeof siteSettings.socialLinks === "object" ? siteSettings.socialLinks : {}
     }
   };
 }
@@ -190,16 +228,22 @@ function buildFallbackVariants(product: StoreProduct, gallery: string[], colors:
 }
 
 export function normalizeProduct(product: StoreProduct, categories: StoreCategory[]): Product {
-  const primaryImage = product.images.find((image) => image.isPrimary)?.imageUrl ?? product.images[0]?.imageUrl ?? "";
-  const gallery = product.images.length ? product.images.map((image) => image.imageUrl) : [primaryImage].filter(Boolean);
-  const sizes = product.sizes.length
-    ? product.sizes
-    : Array.from(new Set(product.variants.map((variant) => variant.size).filter(Boolean))) as string[];
-  const colors = product.colors.length
-    ? product.colors
-    : Array.from(new Set(product.variants.map((variant) => variant.color).filter(Boolean))) as string[];
-  const mappedVariants: ProductVariant[] = product.variants.length
-    ? product.variants.map((variant, index) => ({
+  const images = Array.isArray(product.images) ? product.images : [];
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const productSizes = Array.isArray(product.sizes) ? product.sizes : [];
+  const productColors = Array.isArray(product.colors) ? product.colors : [];
+  const specifications = Array.isArray(product.specifications) ? product.specifications : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const primaryImage = images.find((image) => image.isPrimary)?.imageUrl ?? images[0]?.imageUrl ?? "";
+  const gallery = images.length ? images.map((image) => image.imageUrl) : [primaryImage].filter(Boolean);
+  const sizes = productSizes.length
+    ? productSizes
+    : Array.from(new Set(variants.map((variant) => variant.size).filter(Boolean))) as string[];
+  const colors = productColors.length
+    ? productColors
+    : Array.from(new Set(variants.map((variant) => variant.color).filter(Boolean))) as string[];
+  const mappedVariants: ProductVariant[] = variants.length
+    ? variants.map((variant, index) => ({
         id: variant.id,
         sku: variant.sku,
         color: variant.color ?? colors[index % Math.max(colors.length, 1)] ?? "Black",
@@ -210,7 +254,7 @@ export function normalizeProduct(product: StoreProduct, categories: StoreCategor
       }))
     : buildFallbackVariants(product, gallery, colors, sizes);
 
-  const category = categories.find((entry) => entry.id === product.subcategoryId || entry.id === product.categoryId);
+  const category = safeCategories.find((entry) => entry.id === product.subcategoryId || entry.id === product.categoryId);
   const audienceList =
     product.audience === "unisex" || product.audience === "business"
       ? (["unisex"] as Array<"men" | "women" | "kids" | "unisex">)
@@ -240,8 +284,8 @@ export function normalizeProduct(product: StoreProduct, categories: StoreCategor
     description: product.description ?? product.shortDescription ?? "Premium customisable product.",
     colorOptions: colors.length ? colors : ["Black"],
     sizeOptions: sizes.length ? sizes : ["One Size"],
-    specifications: product.specifications.length
-      ? product.specifications
+    specifications: specifications.length
+      ? specifications
       : [
           product.fabric ? `${product.fabric} construction` : "Premium construction",
           product.gsm ? `${product.gsm} GSM` : "Built for everyday wear",
