@@ -44,15 +44,15 @@ authRouter.post(
     const admin = await authenticateAdmin(payload.email, payload.password);
     const token = signAdminToken(admin);
 
-    setAuthCookie(response, token);
+    setAuthCookie(request, response, token);
     response.status(200).json({ success: true, admin });
   })
 );
 
 authRouter.post(
   "/logout",
-  asyncHandler(async (_request, response) => {
-    clearAuthCookie(response);
+  asyncHandler(async (request, response) => {
+    clearAuthCookie(request, response);
     response.status(204).send();
   })
 );

@@ -2,8 +2,8 @@ import bcrypt from "bcryptjs";
 import jwt, { type SignOptions } from "jsonwebtoken";
 import { v4 as uuid } from "uuid";
 import type { RowDataPacket } from "mysql2";
-import type { CookieOptions, Response } from "express";
-import { env, isProduction } from "../../config/env.js";
+import type { CookieOptions, Request, Response } from "express";
+import { env } from "../../config/env.js";
 import { pool } from "../../db/pool.js";
 import { HttpError } from "../../utils/http.js";
 
@@ -30,14 +30,23 @@ interface AdminRow extends RowDataPacket {
 const cookieName = "admin_token";
 const legacyCookieName = "fab_admin_token";
 
-function getAuthCookieOptions(): CookieOptions {
+function isLocalRequest(request: Request) {
+  return ["localhost", "127.0.0.1", "::1"].includes(request.hostname);
+}
+
+function getAuthCookieOptions(request: Request): CookieOptions {
+  // Derive this from the request instead of NODE_ENV. Deployment dashboards
+  // can override NODE_ENV, but an HTTPS cross-site session must always use
+  // SameSite=None + Secure (and Partitioned for third-party-cookie blocking).
+  const crossSiteCookie = !isLocalRequest(request);
+
   return {
     httpOnly: true,
-    sameSite: isProduction ? "none" : "lax",
-    secure: isProduction,
+    sameSite: crossSiteCookie ? "none" : "lax",
+    secure: crossSiteCookie,
     // CHIPS keeps this cookie usable when the storefront and API are on
     // different sites and the browser blocks ordinary third-party cookies.
-    partitioned: isProduction,
+    partitioned: crossSiteCookie,
     path: "/",
     maxAge: 24 * 60 * 60 * 1000
   };
@@ -115,12 +124,12 @@ export function signAdminToken(admin: AuthenticatedAdmin) {
   );
 }
 
-export function setAuthCookie(response: Response, token: string) {
-  response.cookie(cookieName, token, getAuthCookieOptions());
+export function setAuthCookie(request: Request, response: Response, token: string) {
+  response.cookie(cookieName, token, getAuthCookieOptions(request));
 }
 
-export function clearAuthCookie(response: Response) {
-  const cookieOptions = getAuthCookieOptions();
+export function clearAuthCookie(request: Request, response: Response) {
+  const cookieOptions = getAuthCookieOptions(request);
   delete cookieOptions.maxAge;
   response.clearCookie(cookieName, cookieOptions);
   response.clearCookie(legacyCookieName, cookieOptions);

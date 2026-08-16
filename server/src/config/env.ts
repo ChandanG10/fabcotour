@@ -33,4 +33,9 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
-export const isProduction = env.NODE_ENV === "production";
+// Vercel may have NODE_ENV overridden in project settings. Its platform
+// variables remain authoritative for serverless production behavior.
+export const isProduction =
+  env.NODE_ENV === "production" ||
+  process.env.VERCEL === "1" ||
+  process.env.VERCEL_ENV === "production";
