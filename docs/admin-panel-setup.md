@@ -11,7 +11,6 @@ VITE_API_BASE_URL=http://localhost:8787/api
 VITE_PRODUCTION_API_BASE_URL=https://fabcotour.vercel.app/api
 SERVER_PORT=8787
 NODE_ENV=development
-APP_ORIGIN=http://localhost:5173
 DB_HOST=
 DB_PORT=3306
 DB_USER=

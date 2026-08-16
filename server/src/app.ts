@@ -1,9 +1,8 @@
 import cookieParser from "cookie-parser";
-import cors from "cors";
+import cors, { type CorsOptions } from "cors";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { env } from "./config/env.js";
 import { pool } from "./db/pool.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFoundHandler } from "./middleware/not-found.js";
@@ -20,65 +19,54 @@ import { reviewsRouter } from "./modules/reviews/reviews.routes.js";
 import { storeRouter } from "./modules/store/store.routes.js";
 import { uploadsRouter } from "./modules/uploads/uploads.routes.js";
 
-const localhostOrigins = new Set([
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://127.0.0.1:3000",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:5174"
-]);
+export const productionOrigins = [
+  "https://fabcouture.vertexsoftware.in",
+  "https://www.fabcouture.vertexsoftware.in"
+];
 
-function normalizeOrigin(origin: string) {
-  return origin.trim().replace(/\/+$/, "");
-}
-
-function getConfiguredOrigins() {
-  return env.APP_ORIGIN.split(",")
-    .map((origin) => normalizeOrigin(origin))
-    .filter(Boolean);
-}
-
-function isAllowedOrigin(origin: string) {
-  const normalizedOrigin = normalizeOrigin(origin);
-  const configuredOrigins = getConfiguredOrigins();
-
-  if (configuredOrigins.includes(normalizedOrigin)) {
+export function isAllowedOrigin(origin?: string): boolean {
+  if (!origin) {
     return true;
   }
 
-  if (localhostOrigins.has(normalizedOrigin)) {
+  if (productionOrigins.includes(origin)) {
     return true;
   }
 
   try {
-    const { hostname, protocol } = new URL(normalizedOrigin);
-    if ((protocol === "https:" || protocol === "http:") && hostname.endsWith(".vercel.app")) {
-      return true;
-    }
+    const url = new URL(origin);
+    return (
+      url.protocol === "http:" &&
+      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+    );
   } catch {
     return false;
   }
-
-  return false;
 }
+
+export const corsOptions: CorsOptions = {
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    console.error(`Blocked CORS origin: ${origin}`);
+    callback(new Error("Origin is not allowed by CORS"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  exposedHeaders: ["Set-Cookie"],
+  optionsSuccessStatus: 204
+};
 
 export function createApp() {
   const app = express();
 
-  app.use(
-    cors({
-      origin(origin, callback) {
-        if (!origin || isAllowedOrigin(origin)) {
-          callback(null, true);
-          return;
-        }
-
-        callback(new Error(`Origin ${origin} is not allowed by CORS.`));
-      },
-      credentials: true
-    })
-  );
+  app.set("trust proxy", 1);
+  app.options(/.*/, cors(corsOptions));
+  app.use(cors(corsOptions));
   app.use(helmet());
   app.use(
     rateLimit({
