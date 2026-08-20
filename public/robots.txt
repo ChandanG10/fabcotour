@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://fabcouture.example/sitemap.xml
+Sitemap: https://fabcouture.vertexsoftware.in/sitemap.xml

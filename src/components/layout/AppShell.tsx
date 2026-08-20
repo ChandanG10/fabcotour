@@ -50,6 +50,10 @@ const footerGroups = [
     links: [
       { label: "Contact", to: "/contact" },
       { label: "Track Order", to: "/track-order" },
+      { label: "Shipping Policy", to: "/shipping-policy" },
+      { label: "Returns & Refunds", to: "/return-and-refund-policy" },
+      { label: "Cancellation Policy", to: "/cancellation-policy" },
+      { label: "Customised Products", to: "/customised-product-policy" },
       { label: "Privacy Policy", to: "/privacy-policy" },
       { label: "Terms & Conditions", to: "/terms-and-conditions" }
     ]
@@ -64,6 +68,10 @@ export function AppShell() {
   const [compactHeader, setCompactHeader] = useState(false);
   const [search, setSearch] = useState("");
   const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const [cookieChoice, setCookieChoice] = useState<"essential" | "all" | undefined>(() => {
+    const saved = window.localStorage.getItem("fab-cookie-preference");
+    return saved === "essential" || saved === "all" ? saved : undefined;
+  });
   const cartCount = useAppStore((state) => state.cart.length);
   const wishlistCount = useAppStore((state) => state.wishlist.length);
   const mobileTabs = [
@@ -73,6 +81,10 @@ export function AppShell() {
     { label: "Wishlist", to: "/account#wishlist", icon: Heart },
     { label: "Bag", to: "/cart", icon: ShoppingBag, badge: cartCount }
   ];
+  const saveCookieChoice = (choice: "essential" | "all") => {
+    window.localStorage.setItem("fab-cookie-preference", choice);
+    setCookieChoice(choice);
+  };
 
   useEffect(() => {
     const onScroll = () => {
@@ -312,6 +324,12 @@ export function AppShell() {
             <div className="mt-6 space-y-2 text-sm text-white/60">
               <p>{siteConfig.supportEmail}</p>
               <p>{siteConfig.supportPhone}</p>
+              <p>{siteConfig.businessAddress}</p>
+              <div className="mt-4 border-t border-white/10 pt-4 text-xs leading-6 text-white/58">
+                <p className="font-semibold text-white/75">Grievance contact</p>
+                <p>{siteConfig.grievanceOfficer}</p>
+                <p>{siteConfig.grievanceEmail}</p>
+              </div>
               <p>{siteConfig.businessHours}</p>
             </div>
           </div>
@@ -325,6 +343,7 @@ export function AppShell() {
           <div className="container-shell flex flex-col gap-4 py-6 text-sm text-white/55 md:flex-row md:items-center md:justify-between">
             <p>© 2026 FAB COUTURE. All rights reserved.</p>
             <div className="flex flex-wrap gap-4">
+              <button type="button" onClick={() => setCookieChoice(undefined)} className="hover:text-white">Cookie preferences</button>
               <span>Secure checkout</span>
               <span>UPI</span>
               <span>Visa</span>
@@ -334,6 +353,17 @@ export function AppShell() {
           </div>
         </div>
       </footer>
+
+      {!cookieChoice ? (
+        <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] left-4 right-4 z-[70] mx-auto max-w-3xl rounded-[24px] border border-white/10 bg-brand-black p-5 text-white shadow-soft md:bottom-6">
+          <p className="font-semibold">Cookie preferences</p>
+          <p className="mt-2 text-sm leading-6 text-white/70">Essential storage keeps your bag, custom design and security settings working. Optional analytics should run only with your permission.</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button type="button" className="button-primary bg-brand-yellow text-brand-black" onClick={() => saveCookieChoice("all")}>Accept all</button>
+            <button type="button" className="button-secondary border-white/20 bg-white/5 text-white" onClick={() => saveCookieChoice("essential")}>Essential only</button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="fixed bottom-6 right-4 z-40 flex flex-col gap-3">
         {showTop ? (

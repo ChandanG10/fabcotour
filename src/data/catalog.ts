@@ -141,7 +141,7 @@ const productSeed = [
 
 const buildGallery = () => ["", "", ""];
 
-export const categories: Category[] = categorySeed.map((category, index) => ({
+export const categories: Category[] = categorySeed.map((category) => ({
   id: slugify(category.name),
   slug: slugify(category.name),
   ...category,

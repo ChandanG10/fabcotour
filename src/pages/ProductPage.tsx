@@ -315,6 +315,8 @@ export default function ProductPage() {
                     addToCart({
                       productId: product.id,
                       variantId: selectedVariant?.id ?? product.id,
+                      selectedColor,
+                      selectedSize,
                       quantity
                     })
                   }
@@ -329,6 +331,8 @@ export default function ProductPage() {
                     addToCart({
                       productId: product.id,
                       variantId: selectedVariant?.id ?? product.id,
+                      selectedColor,
+                      selectedSize,
                       quantity
                     });
                     navigate("/checkout");

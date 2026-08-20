@@ -259,14 +259,14 @@ export function BulkOrdersPage() {
 
         <section className="mt-14 grid gap-5 lg:grid-cols-3">
           {[
-            "What is the minimum quantity for bulk pricing?",
-            "Can I approve samples before the full run?",
-            "Can deliveries be split across multiple cities?"
-          ].map((question) => (
+            ["What is the minimum quantity for bulk pricing?", `Bulk pricing normally starts at ${siteConfig.minimumOrderQuantity} units; the final tier depends on product, print method and delivery schedule.`],
+            ["Can I approve samples before the full run?", "Yes. Sampling and digital proof options are confirmed with the quote, including any sample or courier charge."],
+            ["Can deliveries be split across multiple cities?", "Yes. Share the destination list with the enquiry so packing, freight and timelines can be quoted accurately."]
+          ].map(([question, answer]) => (
             <div key={question} className="rounded-[28px] bg-white p-6 shadow-card">
               <h3 className="font-heading text-2xl font-bold">{question}</h3>
               <p className="mt-3 text-sm leading-7 text-brand-black/68">
-                Placeholder FAQ content that can be replaced with exact business rules before launch. MOQ remains configurable in mock settings.
+                {answer}
               </p>
             </div>
           ))}

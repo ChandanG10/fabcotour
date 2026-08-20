@@ -79,6 +79,46 @@ export const storefrontService = {
       fetchStoreProducts({ search: query })
     ]);
     return products.map((product) => normalizeProduct(product, categories));
+  },
+  async createOrder(payload: {
+    customer: { name: string; email: string; phone: string };
+    address: User["addresses"][number];
+    paymentMethod: "Cash on delivery";
+    couponCode?: string;
+    items: Array<{
+      productId: string;
+      variantId?: string;
+      selectedColor?: string;
+      selectedSize?: string;
+      quantity: number;
+      customization?: import("../types/models").CustomDesign;
+    }>;
+  }) {
+    const response = await apiRequest<ItemResponse<{
+      id: string; orderNumber: string; invoiceNumber?: string; createdAt: string;
+      status: Order["status"]; paymentStatus?: Order["paymentStatus"]; paymentMethod: string;
+      trackingNumber?: string | null; subtotal: number; shipping: number; discount: number; total: number;
+      address: User["addresses"][number];
+      items: Array<{ id: string; productId: string; variantId?: string | null; selectedColor?: string; selectedSize?: string; quantity: number; price: number; customization?: import("../types/models").CustomDesign }>;
+    }>>("/store/orders", { method: "POST", body: JSON.stringify(payload) });
+    return {
+      ...response.item,
+      trackingSteps: ["Order confirmed", "Preparing for fulfilment"]
+    } satisfies Order;
+  },
+  async trackOrder(orderNumber: string, email: string) {
+    const query = new URLSearchParams({ email });
+    const response = await apiRequest<ItemResponse<Order & { paymentStatus?: Order["paymentStatus"] }>>(
+      `/store/orders/${encodeURIComponent(orderNumber)}?${query.toString()}`
+    );
+    const statusSteps: Record<string, string[]> = {
+      Pending: ["Order received"], Confirmed: ["Order confirmed", "Preparing for fulfilment"],
+      Processing: ["Order confirmed", "Production or packing in progress"],
+      Shipped: ["Order confirmed", "Order shipped"],
+      Delivered: ["Order confirmed", "Order shipped", "Delivered"],
+      Cancelled: ["Order cancelled"], Returned: ["Return recorded"]
+    };
+    return { ...response.item, trackingSteps: statusSteps[response.item.status] ?? [response.item.status] };
   }
 };
 

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { mockOrders, mockUser } from "../data/catalog";
 import { coupons } from "../constants/site";
+import { calculateCustomizationCharge } from "../lib/pricing";
 import type { Address, CartItem, CustomDesign, DesignLayer, Order, User, WishlistItem } from "../types/models";
 
 interface AppState {
@@ -24,6 +25,7 @@ interface AppState {
   applyCoupon: (code: string) => boolean;
   clearCoupon: () => void;
   placeOrder: (paymentMethod: string, address: Address) => Order;
+  completeOrder: (order: Order) => void;
   addRecentProduct: (productId: string) => void;
   updateCustomDesign: (payload: Partial<CustomDesign>) => void;
   addDesignLayer: (layer: DesignLayer) => void;
@@ -67,13 +69,7 @@ const baseDesign: CustomDesign = {
 
 const calculateItemPrice = (item: CartItem) => {
   const baseProductPrice = 699;
-  const customizationCharge = item.customization
-    ? (item.customization.embroidery ? 180 : 0) +
-      (item.customization.rushDelivery ? 220 : 0) +
-      Math.max(item.customization.layers.length - 1, 0) * 60
-    : 0;
-
-  return (baseProductPrice + customizationCharge) * item.quantity;
+  return baseProductPrice * item.quantity + calculateCustomizationCharge(item.customization);
 };
 
 const cloneCustomDesign = (design: CustomDesign): CustomDesign => ({
@@ -181,6 +177,12 @@ export const useAppStore = create<AppState>()(
 
         return order;
       },
+      completeOrder: (order) =>
+        set((state) => ({
+          orders: [order, ...state.orders.filter((entry) => entry.id !== order.id)],
+          cart: [],
+          activeCoupon: undefined
+        })),
       addRecentProduct: (productId) =>
         set((state) => ({
           recentProductIds: [productId, ...state.recentProductIds.filter((id) => id !== productId)].slice(0, 8)

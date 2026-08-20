@@ -512,7 +512,11 @@ productsRouter.put(
 
       await replaceImages(connection, productId, payload.images);
       await replaceVariants(connection, productId, payload.variants);
-      await connection.query("UPDATE inventory SET quantity = ? WHERE product_id = ? AND variant_id IS NULL", [payload.stock, productId]);
+      await connection.query(
+        `INSERT INTO inventory (id, product_id, variant_id, quantity, low_stock_threshold)
+         VALUES (?, ?, NULL, ?, ?)`,
+        [uuid(), productId, payload.stock, 5]
+      );
     });
 
     const product = (await fetchProductsByWhere("id = ?", [productId]))[0];

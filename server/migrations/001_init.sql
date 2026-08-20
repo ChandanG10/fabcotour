@@ -339,7 +339,7 @@ VALUES (
       'Secure payments'
     )
   ),
-  'hello@fabcouture.example',
+  'admin@fabcouture.in',
   '+91 90000 00000',
   'Monday to Saturday, 10:00 AM to 7:00 PM',
   JSON_OBJECT()

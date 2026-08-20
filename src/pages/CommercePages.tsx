@@ -12,6 +12,7 @@ import { Breadcrumbs, EmptyState, InputField, LoadingState, SectionIntro, Select
 import { coupons } from "../constants/site";
 import { mockUser } from "../data/catalog";
 import { useAsyncData } from "../hooks/useAsyncData";
+import { calculateCustomizationCharge } from "../lib/pricing";
 import { storefrontService } from "../services/api";
 import { useAppStore } from "../store/useAppStore";
 import { currencyFormatter } from "../utils/format";
@@ -24,6 +25,11 @@ const authSchema = z.object({
 });
 
 const forgotSchema = z.object({
+  email: z.string().email()
+});
+
+const trackingSchema = z.object({
+  orderNumber: z.string().trim().min(6),
   email: z.string().email()
 });
 
@@ -47,6 +53,31 @@ function useStoreProducts() {
   return useAsyncData(() => storefrontService.getNormalizedProducts(), []);
 }
 
+function escapeInvoiceText(value: unknown) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  })[character] ?? character);
+}
+
+function downloadInvoice(order: import("../types/models").Order) {
+  const lines = order.items.map((item) =>
+    `<tr><td>${escapeInvoiceText(item.productId)}</td><td>${item.quantity}</td><td>${currencyFormatter.format(item.price)}</td></tr>`
+  ).join("");
+  const documentHtml = `<!doctype html><html><head><meta charset="utf-8"><title>${order.invoiceNumber ?? order.orderNumber}</title>
+    <style>body{font-family:Arial,sans-serif;max-width:760px;margin:40px auto;color:#111}h1{margin-bottom:4px}table{width:100%;border-collapse:collapse;margin:24px 0}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}.total{font-size:20px;font-weight:700}</style></head>
+    <body><h1>FAB COUTURE</h1><p>Invoice ${order.invoiceNumber ?? order.orderNumber}</p><p>Order ${order.orderNumber} · ${new Date(order.createdAt).toLocaleDateString("en-IN")}</p>
+    <p>Deliver to: ${escapeInvoiceText(order.address.recipient)}, ${escapeInvoiceText(order.address.line1)}, ${escapeInvoiceText(order.address.city)}, ${escapeInvoiceText(order.address.state)} ${escapeInvoiceText(order.address.pinCode)}</p>
+    <table><thead><tr><th>Product reference</th><th>Quantity</th><th>Amount</th></tr></thead><tbody>${lines}</tbody></table>
+    <p>Subtotal: ${currencyFormatter.format(order.subtotal)}</p><p>Shipping: ${currencyFormatter.format(order.shipping)}</p><p>Discount: ${currencyFormatter.format(order.discount)}</p>
+    <p class="total">Total: ${currencyFormatter.format(order.total)}</p><p>Payment: ${order.paymentMethod} (${order.paymentStatus ?? "Pending"})</p></body></html>`;
+  const url = URL.createObjectURL(new Blob([documentHtml], { type: "text/html;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${order.invoiceNumber ?? order.orderNumber}.html`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export function CartPage() {
   const navigate = useNavigate();
   const { data: products, loading, error } = useStoreProducts();
@@ -65,9 +96,11 @@ export function CartPage() {
     const variant = product?.variants.find((entry) => entry.id === item.variantId);
     return { item, product, variant };
   });
+  const checkoutRows = cartRows.filter((row) => !row.item.savedForLater);
 
-  const subtotal = cartRows.reduce((sum, row) => sum + ((row.product?.price ?? 0) + (row.item.customization ? 180 : 0)) * row.item.quantity, 0);
-  const shipping = subtotal > 1999 ? 0 : 99;
+  const subtotal = checkoutRows.reduce((sum, row) =>
+    sum + (row.product?.price ?? 0) * row.item.quantity + calculateCustomizationCharge(row.item.customization), 0);
+  const shipping = subtotal === 0 || subtotal >= 999 ? 0 : 99;
   const coupon = coupons.find((entry) => entry.code === activeCoupon);
   const discount =
     coupon && subtotal >= coupon.minimumOrderValue
@@ -105,7 +138,7 @@ export function CartPage() {
                   <article key={row.item.id} className="overflow-hidden rounded-[28px] bg-white p-5 shadow-card">
                     <div className="flex flex-col gap-5 md:flex-row">
                       <AssetImage
-                        src={row.product.images[0]}
+                        src={row.item.customization?.previewImage ?? row.product.images[0]}
                         alt={row.product.name}
                         expectedPath={defaultProductAssetPath(row.product.slug)}
                         missingLabel="Product image is missing"
@@ -118,7 +151,7 @@ export function CartPage() {
                             <h2 className="font-heading text-[2rem] font-bold leading-[1.05] sm:text-2xl">
                               {row.product.name}
                             </h2>
-                            <p className="mt-1 text-sm text-brand-black/55">{row.variant?.color} • {row.variant?.size}</p>
+                            <p className="mt-1 text-sm text-brand-black/55">{row.variant?.color ?? row.item.selectedColor} • {row.variant?.size ?? row.item.selectedSize}</p>
                             {row.item.customization ? (
                               <div className="mt-2 text-sm">
                                 <p className="text-brand-success">Custom design attached</p>
@@ -142,7 +175,7 @@ export function CartPage() {
                             {row.item.savedForLater ? "Move to bag" : "Save for later"}
                           </button>
                         </div>
-                        <p className="mt-4 text-xl font-bold">{currencyFormatter.format((row.product.price + (row.item.customization ? 180 : 0)) * row.item.quantity)}</p>
+                        <p className="mt-4 text-xl font-bold">{currencyFormatter.format(row.product.price * row.item.quantity + calculateCustomizationCharge(row.item.customization))}</p>
                       </div>
                     </div>
                   </article>
@@ -190,7 +223,7 @@ export function CartPage() {
                   <input placeholder="Enter PIN code" className="min-w-0 flex-1 rounded-full border border-black/10 px-4 py-3 outline-none" />
                   <button type="button" className="button-secondary w-full shrink-0 sm:w-auto">Check</button>
                 </div>
-                <p className="mt-3 text-sm text-brand-black/60">Eligible orders above Rs. 1,999 ship free.</p>
+                <p className="mt-3 text-sm text-brand-black/60">Eligible orders of Rs. 999 or more ship free.</p>
               </div>
 
               <div className="rounded-[28px] bg-brand-black p-6 text-white shadow-card">
@@ -204,7 +237,7 @@ export function CartPage() {
                   <span className="font-semibold">Total</span>
                   <span className="font-heading text-4xl font-extrabold leading-none sm:text-3xl">{currencyFormatter.format(total)}</span>
                 </div>
-                <button type="button" className="button-primary mt-6 w-full bg-brand-yellow text-brand-black hover:bg-brand-yellow/90" onClick={() => navigate("/checkout")}>
+                <button type="button" disabled={checkoutRows.length === 0} className="button-primary mt-6 w-full bg-brand-yellow text-brand-black hover:bg-brand-yellow/90 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => navigate("/checkout")}>
                   Proceed to checkout
                 </button>
               </div>
@@ -222,21 +255,23 @@ export function CheckoutPage() {
   const productList = products ?? [];
   const user = useAppStore((state) => state.user) ?? mockUser;
   const cart = useAppStore((state) => state.cart);
-  const placeOrder = useAppStore((state) => state.placeOrder);
+  const completeOrder = useAppStore((state) => state.completeOrder);
   const addAddress = useAppStore((state) => state.addAddress);
+  const checkoutItems = cart.filter((item) => !item.savedForLater);
   const [step, setStep] = useState(1);
-  const [selectedPayment, setSelectedPayment] = useState("UPI");
+  const [selectedPayment] = useState<"Cash on delivery">("Cash on delivery");
   const [selectedAddress, setSelectedAddress] = useState(user.addresses[0]?.id ?? "");
   const [orderNumber, setOrderNumber] = useState("");
+  const [placingOrder, setPlacingOrder] = useState(false);
 
   const form = useForm<z.infer<typeof addressSchema>>({
     resolver: zodResolver(addressSchema),
     defaultValues: user.addresses[0]
   });
 
-  const subtotal = cart.reduce((sum, item) => {
+  const subtotal = checkoutItems.reduce((sum, item) => {
     const product = productList.find((entry) => entry.id === item.productId);
-    return sum + (product?.price ?? 0) * item.quantity;
+    return sum + (product?.price ?? 0) * item.quantity + calculateCustomizationCharge(item.customization);
   }, 0);
 
   if (loading) {
@@ -256,12 +291,43 @@ export function CheckoutPage() {
 
   const activeAddress = user.addresses.find((address) => address.id === selectedAddress) ?? user.addresses[0];
 
+  const submitOrder = async () => {
+    if (!activeAddress || checkoutItems.length === 0) {
+      toast.error("Add an item and delivery address before placing the order.");
+      return;
+    }
+    setPlacingOrder(true);
+    try {
+      const order = await storefrontService.createOrder({
+        customer: { name: user.name, email: user.email, phone: activeAddress.phone },
+        address: activeAddress,
+        paymentMethod: selectedPayment,
+        couponCode: useAppStore.getState().activeCoupon,
+        items: checkoutItems.map((item) => ({
+          productId: item.productId,
+          variantId: item.variantId === item.productId ? undefined : item.variantId,
+          selectedColor: item.selectedColor ?? item.customization?.productColor,
+          selectedSize: item.selectedSize ?? item.customization?.size,
+          quantity: item.quantity,
+          customization: item.customization
+        }))
+      });
+      completeOrder(order);
+      setOrderNumber(order.orderNumber);
+      setStep(6);
+    } catch (orderError) {
+      toast.error(orderError instanceof Error ? orderError.message : "The order could not be placed.");
+    } finally {
+      setPlacingOrder(false);
+    }
+  };
+
   return (
     <>
       <Seo title="Checkout" description="A polished multi-step checkout with guest flow, address collection, payment selection and confirmation." path="/checkout" />
       <div className="container-shell py-8 pb-28">
         <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Checkout" }]} />
-        <SectionIntro eyebrow="Checkout" title="Complete your order" description="Guest checkout, delivery details, payment method selection and confirmation are all wired into the mock state flow." />
+        <SectionIntro eyebrow="Checkout" title="Complete your order" description="Review delivery details and place your order securely." />
         <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
           <section className="rounded-[32px] bg-white p-6 shadow-card">
             <div className="mb-8 grid gap-3 md:grid-cols-6">
@@ -315,7 +381,7 @@ export function CheckoutPage() {
             {step === 4 ? (
               <div className="space-y-4">
                 <p className="text-sm leading-7 text-brand-black/68">Review your items, shipping address and discounts before choosing a payment method.</p>
-                {cart.map((item) => {
+                {checkoutItems.map((item) => {
                   const product = productList.find((entry) => entry.id === item.productId);
                   return product ? (
                     <div key={item.id} className="rounded-[24px] bg-brand-grey p-4">
@@ -332,27 +398,18 @@ export function CheckoutPage() {
               <div className="space-y-4">
                 <p className="text-sm font-semibold">Payment</p>
                 <div className="grid gap-4 md:grid-cols-2">
-                  {["UPI", "Credit/debit card", "Net banking", "Wallet", "Cash on delivery"].map((method) => (
-                    <button
-                      key={method}
-                      type="button"
-                      onClick={() => setSelectedPayment(method)}
-                      className={`rounded-[24px] border px-4 py-4 text-left ${selectedPayment === method ? "border-brand-black bg-brand-grey" : "border-black/10"}`}
-                    >
-                      {method}
-                    </button>
-                  ))}
+                  <div className="rounded-[24px] border border-brand-black bg-brand-grey px-4 py-4 text-left">
+                    Cash on delivery
+                  </div>
                 </div>
+                <p className="text-sm leading-7 text-brand-black/60">Online payment methods will appear only after the production payment gateway and webhook verification are configured.</p>
                 <button
                   type="button"
                   className="button-primary"
-                  onClick={() => {
-                    const order = placeOrder(selectedPayment, activeAddress);
-                    setOrderNumber(order.orderNumber);
-                    setStep(6);
-                  }}
+                  disabled={placingOrder}
+                  onClick={() => void submitOrder()}
                 >
-                  Place order
+                  {placingOrder ? "Placing order..." : "Place order"}
                 </button>
               </div>
             ) : null}
@@ -360,7 +417,7 @@ export function CheckoutPage() {
             {step === 6 ? (
               <div className="space-y-4">
                 <SuccessInline label={`Order confirmed. Reference: ${orderNumber}`} />
-                <p className="text-sm leading-7 text-brand-black/68">This is a mock confirmation flow ready for future payment gateway integration.</p>
+                <p className="text-sm leading-7 text-brand-black/68">Your order has been saved and stock has been reserved. Keep the reference and account email for tracking.</p>
                 <div className="flex flex-wrap gap-4">
                   <button type="button" className="button-primary" onClick={() => navigate("/account")}>View order history</button>
                   <Link to="/track-order" className="button-secondary">Track order</Link>
@@ -373,7 +430,7 @@ export function CheckoutPage() {
             <h2 className="font-heading text-2xl font-bold">Order summary</h2>
             <div className="mt-5 space-y-3 text-sm text-white/74">
               <div className="flex justify-between"><span>Items subtotal</span><span>{currencyFormatter.format(subtotal)}</span></div>
-              <div className="flex justify-between"><span>Estimated shipping</span><span>{subtotal > 1999 ? "Free" : currencyFormatter.format(99)}</span></div>
+              <div className="flex justify-between"><span>Estimated shipping</span><span>{subtotal >= 999 ? "Free" : currencyFormatter.format(99)}</span></div>
               <div className="flex justify-between"><span>Payment method</span><span>{selectedPayment}</span></div>
             </div>
             <div className="mt-6 rounded-[24px] bg-white/8 p-4 text-sm text-white/70">
@@ -568,6 +625,7 @@ export function AccountPage() {
                         </div>
                         <div className="flex flex-wrap gap-3">
                           <Link to="/track-order" className="button-secondary">Track order</Link>
+                          <button type="button" className="button-secondary" onClick={() => downloadInvoice(order)}>Download invoice</button>
                           <button type="button" className="button-secondary">Cancel request</button>
                           <button type="button" className="button-secondary">Return request</button>
                         </div>
@@ -603,15 +661,36 @@ export function AccountPage() {
 
 export function TrackOrderPage() {
   const orders = useAppStore((state) => state.orders);
-  const order = orders[0];
+  const [order, setOrder] = useState<import("../types/models").Order | undefined>(orders[0]);
+  const [tracking, setTracking] = useState(false);
+  const trackingForm = useForm<z.infer<typeof trackingSchema>>({
+    resolver: zodResolver(trackingSchema),
+    defaultValues: { orderNumber: orders[0]?.orderNumber ?? "", email: useAppStore.getState().user?.email ?? "" }
+  });
+  const submitTracking = trackingForm.handleSubmit(async (values) => {
+    setTracking(true);
+    try {
+      setOrder(await storefrontService.trackOrder(values.orderNumber, values.email));
+    } catch (trackingError) {
+      setOrder(undefined);
+      toast.error(trackingError instanceof Error ? trackingError.message : "Order could not be found.");
+    } finally {
+      setTracking(false);
+    }
+  });
 
   return (
     <>
-      <Seo title="Track Order" description="Track order progress through mock production and shipment stages." path="/track-order" />
+      <Seo title="Track Order" description="Track a FAB COUTURE order using its order number and checkout email." path="/track-order" />
       <div className="container-shell py-8 pb-28">
         <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Track Order" }]} />
         <div className="rounded-[36px] bg-white p-8 shadow-card">
-          <SectionIntro title="Track order interface" description="A dedicated tracking view tied to mock order history, status and timeline messaging." />
+          <SectionIntro title="Track your order" description="Enter the order reference and the email used at checkout." />
+          <form onSubmit={submitTracking} className="mb-8 grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+            <InputField label="Order number" register={trackingForm.register("orderNumber")} error={trackingForm.formState.errors.orderNumber} />
+            <InputField label="Checkout email" type="email" register={trackingForm.register("email")} error={trackingForm.formState.errors.email} />
+            <button type="submit" disabled={tracking} className="button-primary disabled:opacity-50">{tracking ? "Checking..." : "Track order"}</button>
+          </form>
           {order ? (
             <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
               <div className="rounded-[28px] bg-brand-black p-6 text-white">
@@ -619,6 +698,8 @@ export function TrackOrderPage() {
                 <h2 className="mt-2 font-heading text-3xl font-extrabold">{order.orderNumber}</h2>
                 <p className="mt-4 text-sm text-white/72">Status: {order.status}</p>
                 <p className="mt-2 text-sm text-white/72">Payment: {order.paymentMethod}</p>
+                {order.trackingNumber ? <p className="mt-2 text-sm text-white/72">Tracking number: {order.trackingNumber}</p> : null}
+                <button type="button" onClick={() => downloadInvoice(order)} className="button-primary mt-5 bg-brand-yellow text-brand-black">Download invoice</button>
               </div>
               <div className="space-y-4">
                 {order.trackingSteps.map((step, index) => (

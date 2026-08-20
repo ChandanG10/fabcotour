@@ -4,10 +4,12 @@ import { pool } from "../../db/pool.js";
 import { asyncHandler } from "../../utils/http.js";
 import { parseJsonValue } from "../../utils/json.js";
 import { storeProductsRouter } from "../products/products.routes.js";
+import { storeOrdersRouter } from "./store-orders.routes.js";
 
 export const storeRouter = Router();
 
 storeRouter.use("/products", storeProductsRouter);
+storeRouter.use("/orders", storeOrdersRouter);
 
 storeRouter.get(
   "/categories",

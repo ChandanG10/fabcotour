@@ -8,6 +8,7 @@ import { Seo } from "../components/common/Seo";
 import { Breadcrumbs, EmptyState, LoadingState, SectionIntro } from "../components/common/Ui";
 import { useAsyncData } from "../hooks/useAsyncData";
 import { findProductVariant, resolveProductPreview, type ProductView } from "../lib/productPreview";
+import { calculateCustomizationCharge } from "../lib/pricing";
 import { storefrontService } from "../services/api";
 import { useAppStore } from "../store/useAppStore";
 import type { DesignLayer } from "../types/models";
@@ -139,14 +140,7 @@ export default function CustomizerPage() {
   };
   const dynamicPrice = useMemo(() => {
     const base = (selectedProduct?.price ?? 0) * store.customDesign.quantity;
-    const printLocationCharge = ["Back", "Sleeve"].some((value) => store.customDesign.printLocation.includes(value))
-      ? 160
-      : 80;
-    const printMethodCharge = store.customDesign.printMethod.includes("Embroidery") ? 190 : 100;
-    const layerCharge = Math.max(store.customDesign.layers.length - 1, 0) * 60;
-    const rushCharge = store.customDesign.rushDelivery ? 220 : 0;
-    const embroideryCharge = store.customDesign.embroidery ? 180 : 0;
-    return base + printLocationCharge + printMethodCharge + layerCharge + rushCharge + embroideryCharge;
+    return base + calculateCustomizationCharge(store.customDesign);
   }, [selectedProduct?.price, store.customDesign]);
 
   const warnings = useMemo(() => {
@@ -197,8 +191,13 @@ export default function CustomizerPage() {
     if (!file) {
       return;
     }
-    if (!["image/png", "image/jpeg", "image/webp", "image/svg+xml"].includes(file.type)) {
-      toast.error("Unsupported file format. Upload PNG, JPG, WebP or SVG.");
+    if (file.size > 1024 * 1024) {
+      event.target.value = "";
+      toast.error("Artwork must be 1 MB or smaller for order storage.");
+      return;
+    }
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      toast.error("Unsupported file format. Upload PNG, JPG or WebP.");
       return;
     }
 
@@ -225,9 +224,8 @@ export default function CustomizerPage() {
     reader.readAsDataURL(file);
   };
 
-  const downloadPreview = async () => {
-    try {
-      const canvas = document.createElement("canvas");
+  const renderPreviewDataUrl = async () => {
+    const canvas = document.createElement("canvas");
       canvas.width = 320;
       canvas.height = 420;
       const context = canvas.getContext("2d");
@@ -258,8 +256,13 @@ export default function CustomizerPage() {
         context.restore();
       }
 
+    return canvas.toDataURL("image/png");
+  };
+
+  const downloadPreview = async () => {
+    try {
       const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
+      link.href = await renderPreviewDataUrl();
       link.download = `${selectedProduct?.slug ?? "fab-couture"}-${activeView}-preview.png`;
       link.click();
       toast.success("Preview downloaded");
@@ -704,20 +707,32 @@ export default function CustomizerPage() {
                 <button
                   type="button"
                   className="button-primary bg-brand-yellow text-brand-black hover:bg-brand-yellow/90"
-                  onClick={() => {
+                  onClick={() => void (async () => {
                     const selectedVariant = findProductVariant(
                       selectedProduct,
                       store.customDesign.productColor,
                       store.customDesign.size
                     );
-                    store.addToCart({
-                      productId: selectedProduct.id,
-                      variantId: selectedVariant?.id ?? selectedProduct.id,
-                      quantity: store.customDesign.quantity,
-                      customization: { ...store.customDesign, productId: selectedProduct.id }
-                    });
-                    toast.success("Customised product added to cart");
-                  }}
+                    try {
+                      const previewImage = await renderPreviewDataUrl();
+                      store.addToCart({
+                        productId: selectedProduct.id,
+                        variantId: selectedVariant?.id ?? selectedProduct.id,
+                        selectedColor: store.customDesign.productColor,
+                        selectedSize: store.customDesign.size,
+                        quantity: store.customDesign.quantity,
+                        customization: {
+                          ...store.customDesign,
+                          productId: selectedProduct.id,
+                          previewImage,
+                          previewView: activeView
+                        }
+                      });
+                      toast.success("Customised product added to cart");
+                    } catch {
+                      toast.error("The custom preview could not be saved. Check the product image and artwork.");
+                    }
+                  })()}
                 >
                   Add customised product to cart
                 </button>

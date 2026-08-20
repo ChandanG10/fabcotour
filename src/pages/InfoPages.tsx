@@ -44,42 +44,75 @@ const pageContent: Record<
   },
   "/privacy-policy": {
     title: "Privacy Policy",
-    description: "Placeholder privacy policy content that must be reviewed with actual business and legal details before launch.",
+    description: "How FAB COUTURE collects, uses, shares and protects personal information.",
     body: [
-      "Placeholder only: business-specific data handling practices, retention windows, consent language and third-party processor details must be reviewed before launch."
+      "Effective date: 20 August 2026. We collect information you provide when creating an account, placing an order, requesting support or submitting artwork, including your name, contact details, delivery address, order information and customisation files.",
+      "We use this information to fulfil orders, process payments, provide customer support, prevent fraud, comply with legal obligations and, where you have agreed, send relevant service or marketing communications.",
+      "We share only the information needed with service providers such as payment gateways, Cloudinary, hosting, analytics and delivery partners. We do not sell personal information. Payment credentials are handled by the payment provider and are not stored by FAB COUTURE.",
+      "Order and accounting records are retained for the period required by applicable law. Support records and uploaded artwork are retained only as long as reasonably necessary for the stated purpose, dispute handling and legitimate business records.",
+      `You may request access, correction or deletion of eligible personal information, withdraw consent where applicable, or raise a grievance by writing to ${siteConfig.grievanceEmail}. We may verify your identity before processing a request.`,
+      "We use reasonable technical and organisational safeguards, but no internet transmission is completely risk-free. Material policy changes will be posted here with an updated effective date."
     ]
   },
   "/terms-and-conditions": {
     title: "Terms and Conditions",
-    description: "Placeholder terms and conditions to be reviewed before public launch.",
+    description: "Terms governing use of the FAB COUTURE website and purchases.",
     body: [
-      "Placeholder only: commercial terms, order acceptance rules, IP ownership, liability limits and jurisdiction clauses must be reviewed before launch."
+      "By using this website or placing an order, you confirm that you are legally capable of entering a contract and that the information you provide is accurate. Product availability, pricing and offers may change before an order is accepted.",
+      "An order acknowledgement is not final acceptance. Acceptance occurs when payment is confirmed or, for cash on delivery, when the order is confirmed for fulfilment. We may cancel and refund an order affected by stock, pricing, fraud-screening or delivery restrictions.",
+      "Product colours may vary slightly by screen and production batch. Measurements and delivery estimates are approximate. Custom artwork proofs, spelling, placement, colour and size selections approved by the customer are treated as final subject to our customised-product policy.",
+      "You retain rights in artwork you own. By uploading content, you confirm that you have permission to reproduce it and grant FAB COUTURE the limited right to use it to produce and support your order. Unlawful, infringing or abusive content may be rejected.",
+      "Nothing in these terms limits rights that cannot lawfully be excluded. These terms are governed by the laws of India; courts with jurisdiction over our disclosed business location will have jurisdiction, subject to applicable consumer law."
     ]
   },
   "/shipping-policy": {
     title: "Shipping Policy",
-    description: "Placeholder shipping policy with business-specific clauses marked for review.",
-    body: ["Placeholder only: dispatch windows, carrier details, split shipment rules and exceptions must be updated before launch."]
+    description: "Dispatch, delivery, tracking and damaged-shipment information.",
+    body: [
+      "Ready-stock orders are normally dispatched within 1–3 business days. Customised or bulk orders require artwork approval and production time; the estimated dispatch window is shown or confirmed before production.",
+      "Delivery estimates begin after dispatch and depend on destination and carrier serviceability. Remote locations, holidays, weather or carrier disruption may cause delays. Multiple items may be shipped separately without additional shipping charges unless disclosed at checkout.",
+      "Tracking details are added after dispatch and can be viewed from Track Order. Please provide a complete address and reachable phone number. Re-delivery or return-to-origin costs caused by an incorrect address or repeated failed delivery may be charged where permitted.",
+      `Report a package that arrives visibly damaged, incomplete or incorrectly delivered to ${siteConfig.supportEmail} within 48 hours, with the order number and clear photographs.`
+    ]
   },
   "/return-and-refund-policy": {
     title: "Return and Refund Policy",
-    description: "Placeholder refund policy clarifying that custom product logic must be legally reviewed before launch.",
-    body: ["Placeholder only: customised-product exceptions, inspection workflow and refund windows must be reviewed before launch."]
+    description: "Eligibility and process for returns, refunds and exchanges.",
+    body: [
+      "Unused, unwashed and non-customised products may be requested for return or size exchange within 7 days of delivery, with original tags and packaging. Approval is subject to inspection and availability.",
+      "Customised, personalised, made-to-order and bulk products are not returnable for preference, fit, spelling or artwork choices approved by the customer. They remain eligible for review when damaged, defective, materially different from the approved design or incorrectly supplied.",
+      `Contact ${siteConfig.supportEmail} with the order number, reason and photographs before sending anything back. Returns sent without authorisation may be delayed or rejected.`,
+      "Approved refunds are issued to the original payment method. Bank or payment-provider processing typically takes 7–10 business days after approval. Original shipping and reverse-pickup charges may be deducted unless the item was defective or incorrectly supplied."
+    ]
   },
   "/cancellation-policy": {
     title: "Cancellation Policy",
-    description: "Placeholder cancellation rules awaiting final business review.",
-    body: ["Placeholder only: cut-off timings, production-stage cancellation logic and refund handling must be reviewed before launch."]
+    description: "When an order can be cancelled and how refunds are handled.",
+    body: [
+      "A ready-stock order may be cancelled before dispatch. A customised or made-to-order product may be cancelled only before artwork approval or production begins.",
+      `Submit a cancellation request promptly through ${siteConfig.supportEmail} with the order number. A request is not complete until confirmed by FAB COUTURE.`,
+      "If cancellation is approved, prepaid amounts are returned to the original payment method. Once a customised order enters production, material, artwork or production costs already incurred may be non-refundable where permitted and disclosed."
+    ]
   },
   "/customised-product-policy": {
     title: "Customised Product Policy",
-    description: "Placeholder policy for personalised and custom-built products.",
-    body: ["Placeholder only: approval responsibilities, design ownership and remake conditions must be reviewed before launch."]
+    description: "Approval, production and remedy terms for customised products.",
+    body: [
+      "Review all text, spelling, colours, size, print side, placement and artwork before adding a customised product to the cart. The saved order design is the production reference unless a separate proof is issued and approved.",
+      "Artwork should be clear and suitable for printing. Low-resolution images, screen-to-print colour differences, fabric texture and normal placement tolerances are not manufacturing defects. We may contact you when artwork cannot be produced reliably.",
+      "You confirm that uploaded artwork does not violate copyright, trademark, privacy or other rights. FAB COUTURE may refuse content reasonably believed to be unlawful, infringing or unsafe.",
+      `If the delivered product is damaged, defective or materially different from the saved design, notify ${siteConfig.supportEmail} within 48 hours with photographs. After verification, we may repair, remake, replace or refund the affected item as appropriate.`
+    ]
   },
   "/payment-policy": {
     title: "Payment Policy",
-    description: "Placeholder payment policy awaiting actual gateway, settlement and COD business rules.",
-    body: ["Placeholder only: accepted methods, failure handling, invoice rules and settlement terms must be reviewed before launch."]
+    description: "Payment authorisation, failures, refunds and invoice information.",
+    body: [
+      "Available payment methods are displayed at checkout. Online payments are processed by the named payment provider; FAB COUTURE does not store complete card, UPI PIN or banking credentials.",
+      "An order is treated as paid only after successful provider verification. If your account is debited but the order remains unpaid, wait for provider reconciliation and contact support with the order reference and transaction reference.",
+      "Duplicate or failed-payment credits are returned through the original payment method after verification. Refund timing depends on the bank or provider.",
+      "An invoice is made available with the order after confirmation. Tax particulars depend on the seller's applicable registration and the information supplied at checkout."
+    ]
   }
 };
 
@@ -112,10 +145,8 @@ export default function InfoPage() {
                 <ContactCard icon={<Phone className="h-5 w-5" />} title="Phone" value={siteConfig.supportPhone} />
                 <ContactCard icon={<Mail className="h-5 w-5" />} title="Email" value={siteConfig.supportEmail} />
                 <ContactCard icon={<Clock3 className="h-5 w-5" />} title="Business hours" value={siteConfig.businessHours} />
-                <ContactCard icon={<MapPin className="h-5 w-5" />} title="Address" value="Placeholder studio address, Bengaluru, India" />
-              </div>
-              <div className="mt-6 rounded-[28px] border border-dashed border-black/10 bg-brand-grey p-6">
-                Embedded map placeholder
+                <ContactCard icon={<MapPin className="h-5 w-5" />} title="Address" value={siteConfig.businessAddress} />
+                <ContactCard icon={<ShieldAlert className="h-5 w-5" />} title="Grievance officer" value={`${siteConfig.grievanceOfficer} · ${siteConfig.grievanceEmail}`} />
               </div>
             </div>
             <div>
@@ -172,12 +203,6 @@ export default function InfoPage() {
               </div>
             ))}
           </div>
-          {location.pathname !== "/about" ? (
-            <div className="mt-6 flex items-start gap-3 rounded-[24px] border border-brand-yellow/40 bg-brand-yellow/10 p-5 text-sm leading-7 text-brand-black/74">
-              <ShieldAlert className="mt-1 h-5 w-5 shrink-0 text-brand-black" />
-              <p>Legal and commercial details on this page are placeholders and must be reviewed before launch.</p>
-            </div>
-          ) : null}
         </article>
       </div>
     </>

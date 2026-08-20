@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";

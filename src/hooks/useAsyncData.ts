@@ -34,6 +34,8 @@ export function useAsyncData<T>(loader: () => Promise<T>, deps: DependencyList) 
     return () => {
       cancelled = true;
     };
+  // The caller supplies the dependency list just as it would for useEffect.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   return { data, loading, error, setData };

@@ -129,6 +129,8 @@ export interface CustomDesign {
   printMethod: string;
   rushDelivery: boolean;
   embroidery: boolean;
+  previewImage?: string;
+  previewView?: "front" | "back" | "left" | "right";
   layers: DesignLayer[];
 }
 
@@ -136,6 +138,8 @@ export interface CartItem {
   id: string;
   productId: string;
   variantId: string;
+  selectedColor?: string;
+  selectedSize?: string;
   quantity: number;
   customization?: CustomDesign;
   savedForLater?: boolean;
@@ -158,7 +162,9 @@ export interface Coupon {
 export interface OrderItem {
   id: string;
   productId: string;
-  variantId: string;
+  variantId?: string | null;
+  selectedColor?: string;
+  selectedSize?: string;
   quantity: number;
   price: number;
   customization?: CustomDesign;
@@ -168,8 +174,11 @@ export interface Order {
   id: string;
   orderNumber: string;
   createdAt: string;
-  status: "Placed" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
+  invoiceNumber?: string;
+  status: "Pending" | "Placed" | "Confirmed" | "Processing" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
+  paymentStatus?: "Pending" | "Paid" | "Failed" | "Refunded";
   paymentMethod: string;
+  trackingNumber?: string | null;
   subtotal: number;
   shipping: number;
   discount: number;

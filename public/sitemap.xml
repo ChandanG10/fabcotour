@@ -1,21 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://fabcouture.example/</loc>
+    <loc>https://fabcouture.vertexsoftware.in/</loc>
   </url>
   <url>
-    <loc>https://fabcouture.example/shop</loc>
+    <loc>https://fabcouture.vertexsoftware.in/shop</loc>
   </url>
   <url>
-    <loc>https://fabcouture.example/corporate-gifting</loc>
+    <loc>https://fabcouture.vertexsoftware.in/corporate-gifting</loc>
   </url>
   <url>
-    <loc>https://fabcouture.example/customise</loc>
+    <loc>https://fabcouture.vertexsoftware.in/customise</loc>
   </url>
   <url>
-    <loc>https://fabcouture.example/about</loc>
+    <loc>https://fabcouture.vertexsoftware.in/about</loc>
   </url>
   <url>
-    <loc>https://fabcouture.example/contact</loc>
+    <loc>https://fabcouture.vertexsoftware.in/contact</loc>
+  </url>
+  <url>
+    <loc>https://fabcouture.vertexsoftware.in/privacy-policy</loc>
+  </url>
+  <url>
+    <loc>https://fabcouture.vertexsoftware.in/terms-and-conditions</loc>
+  </url>
+  <url>
+    <loc>https://fabcouture.vertexsoftware.in/shipping-policy</loc>
+  </url>
+  <url>
+    <loc>https://fabcouture.vertexsoftware.in/return-and-refund-policy</loc>
+  </url>
+  <url>
+    <loc>https://fabcouture.vertexsoftware.in/cancellation-policy</loc>
+  </url>
+  <url>
+    <loc>https://fabcouture.vertexsoftware.in/customised-product-policy</loc>
   </url>
 </urlset>

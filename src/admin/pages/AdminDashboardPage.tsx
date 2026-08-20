@@ -412,8 +412,8 @@ export default function AdminDashboardPage() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [quickSubcategoryForm, setQuickSubcategoryForm] = useState<QuickSubcategoryFormState>(defaultQuickSubcategoryForm());
 
-  const categories = categoriesData?.items ?? [];
-  const parentCategoryOptions = categories.filter((category) => !category.parentId);
+  const categories = useMemo(() => categoriesData?.items ?? [], [categoriesData?.items]);
+  const parentCategoryOptions = useMemo(() => categories.filter((category) => !category.parentId), [categories]);
   const availableCategoryOptions = useMemo(
     () =>
       parentCategoryOptions.filter((category) =>
@@ -588,6 +588,8 @@ export default function AdminDashboardPage() {
     void loadCoupons();
     void loadReviews();
     void loadEnquiries();
+  // Loaders intentionally share the current authenticated dashboard state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [admin, loading]);
 
   const visibleProducts = productsData?.items ?? [];
@@ -936,20 +938,41 @@ export default function AdminDashboardPage() {
     }
   };
 
+  useEffect(() => {
+    if (!sidebarOpen) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [sidebarOpen]);
+
   return (
     <div className="min-h-screen bg-[#f5efe4] text-brand-black">
       <div className="flex min-h-screen">
-        <aside className={`fixed inset-y-0 left-0 z-40 w-[280px] border-r border-black/8 bg-[#0b0b0b] px-5 py-6 text-white transition ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
+        {sidebarOpen ? (
+          <button
+            type="button"
+            aria-label="Close administration navigation"
+            className="fixed inset-0 z-[35] bg-black/45 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
+        <aside className={`fixed inset-y-0 left-0 z-40 flex w-[min(280px,calc(100vw-24px))] flex-col overflow-y-auto border-r border-black/8 bg-[#0b0b0b] px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] text-white transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:w-[280px] lg:translate-x-0`}>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#ffc928]">FAB COUTURE</p>
               <h1 className="mt-2 font-heading text-2xl font-extrabold">Admin Panel</h1>
             </div>
-            <button type="button" className="rounded-full border border-white/10 p-2 lg:hidden" onClick={() => setSidebarOpen(false)}>
+            <button type="button" aria-label="Close navigation" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/10 lg:hidden" onClick={() => setSidebarOpen(false)}>
               <ArrowLeftRight className="h-4 w-4" />
             </button>
           </div>
-          <nav className="mt-8 space-y-2">
+          <nav className="mt-8 flex-1 space-y-2">
             {sections.map((section) => {
               const Icon = section.icon;
               const active = section.id === activeSection;
@@ -961,7 +984,8 @@ export default function AdminDashboardPage() {
                     setActiveSection(section.id);
                     setSidebarOpen(false);
                   }}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${active ? "bg-[#ffc928] text-brand-black" : "text-white/70 hover:bg-white/8 hover:text-white"}`}
+                  aria-current={active ? "page" : undefined}
+                  className={`flex min-h-11 w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${active ? "bg-[#ffc928] text-brand-black" : "text-white/70 hover:bg-white/8 hover:text-white"}`}
                 >
                   <Icon className="h-4 w-4" />
                   {section.label}
@@ -980,28 +1004,28 @@ export default function AdminDashboardPage() {
           </div>
         </aside>
 
-        <div className="flex-1 lg:pl-[280px]">
+        <div className="min-w-0 flex-1 lg:pl-[280px]">
           <header className="sticky top-0 z-30 border-b border-black/8 bg-[#f7f2e8]/90 backdrop-blur">
             <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-              <div className="flex items-center gap-3">
-                <button type="button" className="rounded-full border border-black/10 bg-white p-2 lg:hidden" onClick={() => setSidebarOpen(true)}>
+              <div className="flex min-w-0 items-center gap-3">
+                <button type="button" aria-label="Open navigation" className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white lg:hidden" onClick={() => setSidebarOpen(true)}>
                   <LayoutDashboard className="h-4 w-4" />
                 </button>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-black/45">Administration</p>
-                  <h2 className="font-heading text-2xl font-extrabold">{sectionTitle}</h2>
+                <div className="min-w-0">
+                  <p className="hidden text-xs font-semibold uppercase tracking-[0.28em] text-brand-black/45 sm:block">Administration</p>
+                  <h2 className="truncate font-heading text-xl font-extrabold sm:text-2xl">{sectionTitle}</h2>
                 </div>
               </div>
-              <button type="button" className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold" onClick={() => void logout()}>
+              <button type="button" aria-label="Logout" className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-3 text-sm font-semibold sm:px-4" onClick={() => void logout()}>
                 {busy === "logout" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-                Logout
+                <span className="hidden min-[380px]:inline">Logout</span>
               </button>
             </div>
             <div className="border-t border-black/8 px-4 py-3 sm:px-6 lg:hidden">
               <select
                 value={activeSection}
                 onChange={(event) => setActiveSection(event.target.value as DashboardSection)}
-                className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold outline-none"
+                className="min-h-11 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold outline-none"
               >
                 {sections.map((section) => (
                   <option key={section.id} value={section.id}>
@@ -1012,7 +1036,7 @@ export default function AdminDashboardPage() {
             </div>
           </header>
 
-          <main className="px-4 py-6 sm:px-6 lg:px-8">
+          <main className="min-w-0 overflow-x-clip px-3 py-5 sm:px-6 sm:py-6 lg:px-8">
             {activeSection === "overview" ? (
               <div className="space-y-6">
                 {!dashboardData ? <LoadingState label="Loading dashboard" /> : (
@@ -1062,14 +1086,14 @@ export default function AdminDashboardPage() {
             ) : null}
 
             {activeSection === "products" ? (
-              <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+              <div className="grid min-w-0 items-start gap-6 min-[1800px]:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
                 <Panel title="Product Catalogue" description="Create, edit, archive and remove storefront products.">
                   <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-                    <div className="flex flex-1 items-center gap-3 rounded-full border border-black/10 bg-white px-4 py-3">
+                    <div className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-full border border-black/10 bg-white px-4 py-3">
                       <Search className="h-4 w-4 text-brand-black/40" />
-                      <input value={productSearch} onChange={(event) => setProductSearch(event.target.value)} className="w-full border-0 bg-transparent outline-none" placeholder="Search by name or SKU" />
+                      <input value={productSearch} onChange={(event) => setProductSearch(event.target.value)} className="min-w-0 w-full border-0 bg-transparent outline-none" placeholder="Search by name or SKU" />
                     </div>
-                    <button type="button" className="rounded-full bg-brand-black px-5 py-3 text-sm font-semibold text-white" onClick={() => void loadProducts()}>
+                    <button type="button" className="min-h-11 rounded-full bg-brand-black px-5 py-3 text-sm font-semibold text-white" onClick={() => void loadProducts()}>
                       Search
                     </button>
                   </div>
@@ -1078,8 +1102,8 @@ export default function AdminDashboardPage() {
                       <div key={product.id} className="rounded-[24px] border border-black/8 bg-white p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
-                            <div className="text-lg font-semibold leading-tight">{product.name}</div>
-                            <div className="mt-1 text-xs text-brand-black/52">{product.sku}</div>
+                            <div className="break-words text-lg font-semibold leading-tight">{product.name}</div>
+                            <div className="mt-1 break-all text-xs text-brand-black/52">{product.sku}</div>
                           </div>
                           <div className="shrink-0 rounded-full bg-[#f8f1e3] px-3 py-1 text-xs font-semibold capitalize">
                             {product.audience}
@@ -1146,9 +1170,9 @@ export default function AdminDashboardPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="hidden overflow-hidden rounded-[24px] border border-black/8 bg-white md:block">
+                  <div className="hidden min-w-0 overflow-hidden rounded-[24px] border border-black/8 bg-white md:block">
                     <div className="overflow-x-auto">
-                      <table className="min-w-full text-left text-sm">
+                      <table className="min-w-[760px] text-left text-sm">
                         <thead className="bg-[#f8f1e3] text-brand-black/68">
                           <tr>
                             {["Product", "Audience", "Price", "Stock", "Flags", "Actions"].map((heading) => (
@@ -1364,7 +1388,7 @@ export default function AdminDashboardPage() {
                       ["Archived", "isArchived"],
                       ["Visible", "isVisible"]
                     ].map(([label, key]) => (
-                      <label key={key} className="flex items-center gap-3 rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm font-medium">
+                      <label key={key} className="flex min-h-11 items-center gap-3 rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm font-medium">
                         <input
                           type="checkbox"
                           checked={Boolean(productForm[key as keyof ProductFormState])}
@@ -1378,12 +1402,12 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="mt-6">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
                         <h3 className="text-sm font-semibold">Gallery Images</h3>
                         <p className="text-sm text-brand-black/58">Upload JPG, PNG or WebP images. Set a storefront primary and optionally assign each image to a colour, size and view.</p>
                       </div>
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold">
+                      <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold">
                         <Upload className="h-4 w-4" />
                         Upload
                         <input
@@ -1409,12 +1433,12 @@ export default function AdminDashboardPage() {
                         />
                       </label>
                     </div>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="mt-4 grid min-w-0 gap-3 sm:grid-cols-2">
                       {productForm.images.map((image, index) => (
-                        <div key={`${image.publicId}-${index}`} className="rounded-[22px] border border-black/8 bg-white p-3">
+                        <div key={`${image.publicId}-${index}`} className="min-w-0 overflow-hidden rounded-[22px] border border-black/8 bg-white p-3">
                           <img src={image.imageUrl} alt={`Upload ${index + 1}`} className="aspect-[4/3] w-full rounded-[18px] object-cover" />
-                          <div className="mt-3 flex items-center justify-between gap-3">
-                            <label className="flex items-center gap-2 text-xs font-semibold">
+                          <div className="mt-3 grid min-w-0 gap-3">
+                            <label className="flex min-h-11 min-w-0 items-center gap-2 text-xs font-semibold">
                               <input
                                 type="radio"
                                 name="primary-image"
@@ -1431,10 +1455,11 @@ export default function AdminDashboardPage() {
                               />
                               Storefront primary
                             </label>
-                            <div className="flex gap-2">
+                            <div className="grid min-w-0 grid-cols-2 gap-2">
                               <IconButton
                                 icon={ArrowLeftRight}
                                 label="Move"
+                                className="w-full justify-center"
                                 onClick={() =>
                                   setProductForm((state) => {
                                     const next = [...state.images];
@@ -1451,6 +1476,7 @@ export default function AdminDashboardPage() {
                               <IconButton
                                 icon={Trash2}
                                 label="Remove"
+                                className="w-full justify-center"
                                 onClick={() =>
                                   void runAction("remove-image", async () => {
                                     if (productForm.id && image.id) {
@@ -1470,8 +1496,8 @@ export default function AdminDashboardPage() {
                             </div>
                           </div>
                           <details className="mt-3 rounded-[18px] border border-black/8 bg-brand-offwhite p-3">
-                            <summary className="cursor-pointer text-sm font-semibold">Assign Variant</summary>
-                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold">Assign Variant</summary>
+                            <div className="mt-3 grid gap-3">
                               <label className="space-y-1.5 text-xs font-semibold">
                                 <span>Colour</span>
                                 <select
@@ -1482,7 +1508,7 @@ export default function AdminDashboardPage() {
                                       variantView: event.target.value ? image.variantView ?? "front" : null
                                     })
                                   }
-                                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
+                                  className="min-h-11 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
                                 >
                                   <option value="">Unassigned</option>
                                   {Array.from(new Set([
@@ -1499,7 +1525,7 @@ export default function AdminDashboardPage() {
                                   value={image.variantSize ?? ""}
                                   disabled={!image.variantColor}
                                   onChange={(event) => updateProductImage(index, { variantSize: event.target.value || null })}
-                                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none disabled:opacity-50"
+                                  className="min-h-11 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none disabled:opacity-50"
                                 >
                                   <option value="">All Sizes</option>
                                   {Array.from(new Set([
@@ -1518,7 +1544,7 @@ export default function AdminDashboardPage() {
                                   onChange={(event) => updateProductImage(index, {
                                     variantView: (event.target.value || null) as UploadedImage["variantView"]
                                   })}
-                                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none disabled:opacity-50"
+                                  className="min-h-11 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none disabled:opacity-50"
                                 >
                                   <option value="">Select view</option>
                                   <option value="front">Front</option>
@@ -1527,7 +1553,7 @@ export default function AdminDashboardPage() {
                                   <option value="right">Right</option>
                                 </select>
                               </label>
-                              <label className="flex items-center gap-2 self-end rounded-xl border border-black/8 bg-white px-3 py-2.5 text-xs font-semibold">
+                              <label className="flex min-h-11 items-center gap-2 self-end rounded-xl border border-black/8 bg-white px-3 py-2.5 text-xs font-semibold">
                                 <input
                                   type="checkbox"
                                   disabled={!image.variantColor}
@@ -1544,10 +1570,10 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="mt-6 flex flex-wrap gap-3">
-                    <button type="button" className="rounded-full bg-brand-black px-5 py-3 text-sm font-semibold text-white" onClick={() => void submitProduct()}>
+                    <button type="button" className="min-h-11 rounded-full bg-brand-black px-5 py-3 text-sm font-semibold text-white" onClick={() => void submitProduct()}>
                       {busy === "save-product" ? "Saving..." : productForm.id ? "Update Product" : "Create Product"}
                     </button>
-                    <button type="button" className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold" onClick={() => setProductForm(defaultProductForm())}>
+                    <button type="button" className="min-h-11 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold" onClick={() => setProductForm(defaultProductForm())}>
                       Reset
                     </button>
                   </div>
@@ -1809,10 +1835,21 @@ export default function AdminDashboardPage() {
             {activeSection === "orders" ? (
               <Panel title="Orders" description="Update lifecycle status, payment status and tracking numbers.">
                 <SimpleTable
-                  columns={["Order", "Customer", "Status", "Payment", "Tracking", "Actions"]}
-                  rows={(ordersData?.items ?? []).map((order) => [
-                    String(order.order_number ?? "—"),
+                  columns={["Order", "Customer", "Items", "Status", "Payment", "Tracking", "Total"]}
+                  rows={(ordersData?.items ?? []).map((order) => {
+                    const orderItems = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+                    return [
+                    <div key={`order-${String(order.id)}`}><p>{String(order.order_number ?? "—")}</p><p className="text-xs text-brand-black/50">{String(order.invoice_number ?? "")}</p></div>,
                     `${String(order.customer_name ?? "—")} (${String(order.customer_email ?? "—")})`,
+                    <div key={`items-${String(order.id)}`} className="space-y-2">
+                      {orderItems.map((item) => {
+                        const customization = item.customization && typeof item.customization === "object" ? item.customization as Record<string, unknown> : null;
+                        return <div key={String(item.id)} className="flex items-center gap-2 text-xs">
+                          {typeof customization?.previewImage === "string" ? <img src={customization.previewImage} alt="Saved custom preview" className="h-12 w-10 rounded-lg object-cover" /> : null}
+                          <span>{String(item.product_name ?? "Item")} × {String(item.quantity ?? 1)}{customization ? ` · ${String(customization.productColor ?? "")} / ${String(customization.size ?? "")}` : ""}</span>
+                        </div>;
+                      })}
+                    </div>,
                     <select key={`status-${order.id as string}`} defaultValue={String(order.status ?? "Pending")} className={inputClass} onChange={(event) => void adminService.updateOrder(String(order.id), { status: event.target.value }).then(() => { toast.success("Order status updated."); void loadOrders(); })}>
                       {["Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"].map((status) => <option key={status} value={status}>{status}</option>)}
                     </select>,
@@ -1821,7 +1858,7 @@ export default function AdminDashboardPage() {
                     </select>,
                     <input key={`tracking-${order.id as string}`} defaultValue={String(order.tracking_number ?? "")} className={inputClass} onBlur={(event) => void adminService.updateOrder(String(order.id), { trackingNumber: event.target.value || null }).then(() => { toast.success("Tracking number saved."); })} />,
                     `₹${Number(order.total_amount ?? 0).toLocaleString("en-IN")}`
-                  ])}
+                  ];})}
                 />
               </Panel>
             ) : null}
@@ -2058,7 +2095,7 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-[32px] border border-black/8 bg-[#f8f1e3] p-5 shadow-sm sm:p-6">
+    <section className="min-w-0 rounded-[24px] border border-black/8 bg-[#f8f1e3] p-4 shadow-sm sm:rounded-[32px] sm:p-6">
       <div className="mb-5">
         <h3 className="font-heading text-2xl font-extrabold">{title}</h3>
         <p className="mt-2 text-sm leading-7 text-brand-black/64">{description}</p>
@@ -2076,7 +2113,7 @@ function SubPanel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[26px] border border-black/8 bg-white p-5">
+    <div className="min-w-0 rounded-[22px] border border-black/8 bg-white p-4 sm:rounded-[26px] sm:p-5">
       <h4 className="font-semibold">{title}</h4>
       <div className="mt-4 space-y-4">{children}</div>
     </div>
@@ -2146,14 +2183,16 @@ function SimpleTable({
 function IconButton({
   icon: Icon,
   label,
-  onClick
+  onClick,
+  className = ""
 }: {
   icon: typeof Pencil;
   label: string;
   onClick: () => void;
+  className?: string;
 }) {
   return (
-    <button type="button" className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-semibold" onClick={onClick}>
+    <button type="button" className={`inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-semibold ${className}`} onClick={onClick}>
       <Icon className="h-3.5 w-3.5" />
       {label}
     </button>
@@ -2207,5 +2246,5 @@ function EnquiryTable({
   );
 }
 
-const inputClass = "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none";
-const textareaClass = "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none";
+const inputClass = "min-h-11 min-w-0 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none";
+const textareaClass = "min-w-0 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none";
