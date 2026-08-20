@@ -20,6 +20,10 @@ export interface StoreProductImage {
   altText: string | null;
   sortOrder: number;
   isPrimary: boolean;
+  variantColor: string | null;
+  variantSize: string | null;
+  variantView: "front" | "back" | "left" | "right" | null;
+  isVariantPrimary: boolean;
 }
 
 export interface StoreProductVariant {
@@ -279,6 +283,17 @@ export function normalizeProduct(product: StoreProduct, categories: StoreCategor
     customisable: product.isCustomisable,
     printMethods: product.printingMethod ? [product.printingMethod] : ["Direct-to-garment"],
     images: gallery.length ? gallery : [""],
+    imageAssets: images.map((image) => ({
+      id: image.id,
+      imageUrl: image.imageUrl,
+      altText: image.altText,
+      sortOrder: image.sortOrder,
+      isPrimary: image.isPrimary,
+      variantColor: image.variantColor ?? null,
+      variantSize: image.variantSize ?? null,
+      variantView: image.variantView ?? null,
+      isVariantPrimary: image.isVariantPrimary ?? false
+    })),
     hoverImage: gallery[1] ?? gallery[0] ?? "",
     videoPlaceholder: gallery[0] ?? "",
     description: product.description ?? product.shortDescription ?? "Premium customisable product.",

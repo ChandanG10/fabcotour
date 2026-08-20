@@ -7,43 +7,136 @@ import { AssetImage, defaultProductAssetPath } from "../components/common/AssetI
 import { Seo } from "../components/common/Seo";
 import { Breadcrumbs, EmptyState, LoadingState, SectionIntro } from "../components/common/Ui";
 import { useAsyncData } from "../hooks/useAsyncData";
+import { findProductVariant, resolveProductPreview, type ProductView } from "../lib/productPreview";
 import { storefrontService } from "../services/api";
 import { useAppStore } from "../store/useAppStore";
 import type { DesignLayer } from "../types/models";
 import { currencyFormatter } from "../utils/format";
 
 const printableBounds = { x: 52, y: 52, width: 180, height: 210 };
-const views: Array<"front" | "back" | "left" | "right"> = ["front", "back", "left", "right"];
+const views: ProductView[] = ["front", "back", "left", "right"];
+
+const loadCanvasImage = (src: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("The preview image could not be loaded."));
+    image.src = src;
+  });
+
+function drawImageCover(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  width: number,
+  height: number
+) {
+  const sourceX = 0;
+  const sourceY = 0;
+  const sourceWidth = image.naturalWidth;
+  const sourceHeight = image.naturalHeight;
+  const sourceRatio = sourceWidth / sourceHeight;
+  const targetRatio = width / height;
+  let sx = sourceX;
+  let sy = sourceY;
+  let sw = sourceWidth;
+  let sh = sourceHeight;
+
+  if (sourceRatio > targetRatio) {
+    sw = sourceHeight * targetRatio;
+    sx += (sourceWidth - sw) / 2;
+  } else {
+    sh = sourceWidth / targetRatio;
+    sy += (sourceHeight - sh) / 2;
+  }
+
+  context.drawImage(image, sx, sy, sw, sh, 0, 0, width, height);
+}
 
 export default function CustomizerPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const store = useAppStore();
-  const [activeView, setActiveView] = useState<"front" | "back" | "left" | "right">("front");
+  const [activeView, setActiveView] = useState<ProductView>("front");
   const [customText, setCustomText] = useState("Your story here");
   const [previewMode, setPreviewMode] = useState(false);
+  const { customDesign, updateCustomDesign } = store;
   const { data: products, loading, error } = useAsyncData(
     () => storefrontService.getNormalizedProducts(),
     []
   );
+  const requestedProductId = searchParams.get("product");
   const selectedProduct =
-    products?.find((product) => product.id === (searchParams.get("product") ?? store.customDesign.productId)) ??
+    products?.find((product) => product.id === requestedProductId) ??
+    products?.find((product) => product.id === customDesign.productId) ??
     products?.[0];
-  const selectedLayer = store.customDesign.layers.find((layer) => layer.id === store.selectedLayerId);
+  const selectedLayer = store.customDesign.layers.find(
+    (layer) => layer.id === store.selectedLayerId && layer.view === activeView
+  );
 
   useEffect(() => {
-    if (!selectedProduct || store.customDesign.productId) {
+    if (!selectedProduct) {
       return;
     }
 
-    store.updateCustomDesign({
-      productId: selectedProduct.id,
-      size: selectedProduct.sizeOptions[0] ?? "One Size",
-      productColor: selectedProduct.colorOptions[0] ?? "Black",
-      printMethod: selectedProduct.printMethods[0] ?? "Direct-to-garment"
-    });
-  }, [selectedProduct, store]);
+    const productChanged = customDesign.productId !== selectedProduct.id;
+    const nextColor = productChanged || !selectedProduct.colorOptions.includes(customDesign.productColor)
+      ? selectedProduct.colorOptions[0] ?? "Black"
+      : customDesign.productColor;
+    const nextSize = productChanged || !selectedProduct.sizeOptions.includes(customDesign.size)
+      ? selectedProduct.sizeOptions[0] ?? "One Size"
+      : customDesign.size;
+    const nextPrintMethod = productChanged || !selectedProduct.printMethods.includes(customDesign.printMethod)
+      ? selectedProduct.printMethods[0] ?? "Direct-to-garment"
+      : customDesign.printMethod;
+
+    if (
+      productChanged ||
+      nextColor !== customDesign.productColor ||
+      nextSize !== customDesign.size ||
+      nextPrintMethod !== customDesign.printMethod
+    ) {
+      updateCustomDesign({
+        productId: selectedProduct.id,
+        productColor: nextColor,
+        size: nextSize,
+        printMethod: nextPrintMethod
+      });
+    }
+  }, [customDesign.productColor, customDesign.productId, customDesign.printMethod, customDesign.size, selectedProduct, updateCustomDesign]);
+
+  const previewAsset = useMemo(
+    () => selectedProduct
+      ? resolveProductPreview(
+          selectedProduct,
+          store.customDesign.productColor,
+          store.customDesign.size,
+          activeView
+        )
+      : { src: "" },
+    [activeView, selectedProduct, store.customDesign.productColor, store.customDesign.size]
+  );
 
   const visibleLayers = store.customDesign.layers.filter((layer) => layer.view === activeView);
+  const changeView = (view: ProductView) => {
+    setActiveView(view);
+    store.selectLayer(store.customDesign.layers.find((layer) => layer.view === view)?.id);
+  };
+
+  const changeProduct = (productId: string) => {
+    const product = products?.find((entry) => entry.id === productId);
+    if (!product) {
+      return;
+    }
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("product");
+    setSearchParams(nextParams, { replace: true });
+    store.updateCustomDesign({
+      productId: product.id,
+      productColor: product.colorOptions[0] ?? "Black",
+      size: product.sizeOptions[0] ?? "One Size",
+      printMethod: product.printMethods[0] ?? "Direct-to-garment"
+    });
+  };
   const dynamicPrice = useMemo(() => {
     const base = (selectedProduct?.price ?? 0) * store.customDesign.quantity;
     const printLocationCharge = ["Back", "Sleeve"].some((value) => store.customDesign.printLocation.includes(value))
@@ -122,50 +215,57 @@ export default function CustomizerPage() {
         width: 110,
         height: 110
       });
+      event.target.value = "";
       toast.success("Artwork uploaded");
+    };
+    reader.onerror = () => {
+      event.target.value = "";
+      toast.error("Artwork could not be read. Please try another image.");
     };
     reader.readAsDataURL(file);
   };
 
   const downloadPreview = async () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 360;
-    canvas.height = 420;
-    const context = canvas.getContext("2d");
-    if (!context) {
-      return;
-    }
-    context.fillStyle = store.customDesign.productColor === "Midnight Black" ? "#111111" : "#F5F0E7";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.strokeStyle = "#d4d4d4";
-    context.strokeRect(70, 60, 220, 250);
-
-    for (const layer of visibleLayers) {
-      context.save();
-      context.translate(layer.x + layer.width / 2, layer.y + layer.height / 2);
-      context.rotate((layer.rotation * Math.PI) / 180);
-      if (layer.type === "text") {
-        context.fillStyle = layer.color ?? "#FFC627";
-        context.font = `${layer.fontStyle === "italic" ? "italic " : ""}${layer.fontWeight ?? 700} ${layer.fontSize ?? 24}px sans-serif`;
-        context.textAlign = "center";
-        context.fillText(layer.content, 0, 0);
-      } else {
-        const image = new Image();
-        await new Promise<void>((resolve) => {
-          image.onload = () => {
-            context.drawImage(image, -layer.width / 2, -layer.height / 2, layer.width, layer.height);
-            resolve();
-          };
-          image.src = layer.content;
-        });
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 320;
+      canvas.height = 420;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        throw new Error("Canvas is unavailable.");
       }
-      context.restore();
-    }
 
-    const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
-    link.download = "fab-couture-preview.png";
-    link.click();
+      const productImage = await loadCanvasImage(previewAsset.src);
+      context.save();
+      context.globalAlpha = 0.5;
+      drawImageCover(context, productImage, canvas.width, canvas.height);
+      context.restore();
+
+      for (const layer of visibleLayers) {
+        context.save();
+        context.translate(layer.x + layer.width / 2, layer.y + layer.height / 2);
+        context.rotate((layer.rotation * Math.PI) / 180);
+        if (layer.type === "text") {
+          context.fillStyle = layer.color ?? "#FFC627";
+          context.font = `${layer.fontStyle === "italic" ? "italic " : ""}${layer.fontWeight ?? 700} ${layer.fontSize ?? 24}px ${layer.fontFamily ?? "sans-serif"}`;
+          context.textAlign = layer.textAlign ?? "center";
+          const textX = layer.textAlign === "left" ? -layer.width / 2 : layer.textAlign === "right" ? layer.width / 2 : 0;
+          context.fillText(layer.content, textX, 0, layer.width);
+        } else {
+          const artwork = await loadCanvasImage(layer.content);
+          context.drawImage(artwork, -layer.width / 2, -layer.height / 2, layer.width, layer.height);
+        }
+        context.restore();
+      }
+
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${selectedProduct?.slug ?? "fab-couture"}-${activeView}-preview.png`;
+      link.click();
+      toast.success("Preview downloaded");
+    } catch {
+      toast.error("Preview could not be downloaded. Please check the product image and try again.");
+    }
   };
 
   if (loading) {
@@ -203,44 +303,60 @@ export default function CustomizerPage() {
         />
 
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="space-y-6 rounded-[32px] bg-white p-6 shadow-card">
+          <section className="space-y-6 rounded-[32px] bg-white p-4 shadow-card sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex flex-wrap gap-2">
                 {views.map((view) => (
                   <button
                     key={view}
                     type="button"
-                    onClick={() => setActiveView(view)}
+                    onClick={() => changeView(view)}
                     className={`rounded-full px-4 py-2 text-sm font-semibold ${activeView === view ? "bg-brand-black text-white" : "bg-brand-grey text-brand-black"}`}
                   >
                     {view}
                   </button>
                 ))}
               </div>
-              <button type="button" onClick={store.resetDesign} className="button-secondary">
+              <button
+                type="button"
+                onClick={() => {
+                  store.resetDesign({
+                    productId: selectedProduct.id,
+                    productColor: selectedProduct.colorOptions[0] ?? "Black",
+                    size: selectedProduct.sizeOptions[0] ?? "One Size",
+                    printMethod: selectedProduct.printMethods[0] ?? "Direct-to-garment"
+                  });
+                  setActiveView("front");
+                  setPreviewMode(false);
+                  toast.success("Design reset");
+                }}
+                className="button-secondary"
+              >
                 Reset design
               </button>
             </div>
 
-            <div className="overflow-hidden rounded-[28px] bg-brand-offwhite p-6">
-              <div className="relative mx-auto h-[420px] w-full max-w-[320px] rounded-[30px] bg-white shadow-soft">
+            <div className="overflow-hidden rounded-[28px] bg-brand-offwhite p-2 sm:p-6">
+              <div className="relative mx-auto h-[420px] w-full max-w-[320px] overflow-hidden rounded-[30px] bg-white shadow-soft">
                 <AssetImage
-                  src={selectedProduct.images[0]}
+                  src={previewAsset.src}
                   alt={`${selectedProduct.name} mockup for customiser`}
                   expectedPath={defaultProductAssetPath(selectedProduct.slug)}
                   missingLabel="Product image is missing"
                   imageClassName="h-full w-full rounded-[30px] object-cover opacity-50"
                   fallbackClassName="h-full w-full rounded-[30px]"
                 />
-                <div
-                  className="absolute border-2 border-dashed border-brand-black/30"
-                  style={{
-                    left: printableBounds.x,
-                    top: printableBounds.y,
-                    width: printableBounds.width,
-                    height: printableBounds.height
-                  }}
-                />
+                {!previewMode ? (
+                  <div
+                    className="absolute border-2 border-dashed border-brand-black/30"
+                    style={{
+                      left: printableBounds.x,
+                      top: printableBounds.y,
+                      width: printableBounds.width,
+                      height: printableBounds.height
+                    }}
+                  />
+                ) : null}
                 {!previewMode
                   ? visibleLayers.map((layer) => (
                       <Rnd
@@ -259,25 +375,26 @@ export default function CustomizerPage() {
                         }
                         onClick={() => store.selectLayer(layer.id)}
                         className={`overflow-hidden rounded-md border ${store.selectedLayerId === layer.id ? "border-brand-yellow" : "border-transparent"}`}
-                        style={{ transform: `rotate(${layer.rotation}deg)` }}
                       >
-                        {layer.type === "text" ? (
-                          <div
-                            className="flex h-full w-full items-center justify-center text-center"
-                            style={{
-                              color: layer.color,
-                              fontSize: layer.fontSize,
-                              fontFamily: layer.fontFamily,
-                              fontWeight: layer.fontWeight,
-                              fontStyle: layer.fontStyle,
-                              textAlign: layer.textAlign
-                            }}
-                          >
-                            {layer.content}
-                          </div>
-                        ) : (
-                          <img src={layer.content} alt="Uploaded artwork layer" className="h-full w-full object-contain" />
-                        )}
+                        <div className="h-full w-full" style={{ transform: `rotate(${layer.rotation}deg)` }}>
+                          {layer.type === "text" ? (
+                            <div
+                              className="flex h-full w-full items-center justify-center text-center"
+                              style={{
+                                color: layer.color,
+                                fontSize: layer.fontSize,
+                                fontFamily: layer.fontFamily,
+                                fontWeight: layer.fontWeight,
+                                fontStyle: layer.fontStyle,
+                                textAlign: layer.textAlign
+                              }}
+                            >
+                              {layer.content}
+                            </div>
+                          ) : (
+                            <img src={layer.content} alt="Uploaded artwork layer" className="h-full w-full object-contain" />
+                          )}
+                        </div>
                       </Rnd>
                     ))
                   : visibleLayers.map((layer) => (
@@ -294,7 +411,8 @@ export default function CustomizerPage() {
                               fontSize: layer.fontSize,
                               fontFamily: layer.fontFamily,
                               fontWeight: layer.fontWeight,
-                              fontStyle: layer.fontStyle
+                              fontStyle: layer.fontStyle,
+                              textAlign: layer.textAlign
                             }}
                           >
                             {layer.content}
@@ -312,7 +430,14 @@ export default function CustomizerPage() {
                 <Eye className="mr-2 h-4 w-4" />
                 {previewMode ? "Edit mode" : "Preview mode"}
               </button>
-              <button type="button" onClick={() => toast.success("Design saved locally in app state")} className="button-secondary">
+              <button
+                type="button"
+                onClick={() => {
+                  store.updateCustomDesign({ id: `design-${Date.now()}` });
+                  toast.success("Design saved on this device");
+                }}
+                className="button-secondary"
+              >
                 <Save className="mr-2 h-4 w-4" />
                 Save design
               </button>
@@ -334,13 +459,13 @@ export default function CustomizerPage() {
             ) : null}
           </section>
 
-          <section className="space-y-6 rounded-[32px] bg-white p-6 shadow-card">
+          <section className="space-y-6 rounded-[32px] bg-white p-4 shadow-card sm:p-6">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-2">
                 <span className="text-sm font-semibold">Choose product</span>
                 <select
                   value={store.customDesign.productId}
-                  onChange={(event) => store.updateCustomDesign({ productId: event.target.value })}
+                  onChange={(event) => changeProduct(event.target.value)}
                   className="w-full rounded-2xl border border-black/10 px-4 py-3 outline-none"
                 >
                   {products.slice(0, 12).map((product) => (
@@ -532,7 +657,7 @@ export default function CustomizerPage() {
                     key={layer.id}
                     type="button"
                     onClick={() => {
-                      setActiveView(layer.view);
+                      changeView(layer.view);
                       store.selectLayer(layer.id);
                     }}
                     className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left ${store.selectedLayerId === layer.id ? "bg-brand-black text-white" : "bg-white"}`}
@@ -580,9 +705,14 @@ export default function CustomizerPage() {
                   type="button"
                   className="button-primary bg-brand-yellow text-brand-black hover:bg-brand-yellow/90"
                   onClick={() => {
+                    const selectedVariant = findProductVariant(
+                      selectedProduct,
+                      store.customDesign.productColor,
+                      store.customDesign.size
+                    );
                     store.addToCart({
                       productId: selectedProduct.id,
-                      variantId: selectedProduct.variants[0].id,
+                      variantId: selectedVariant?.id ?? selectedProduct.id,
                       quantity: store.customDesign.quantity,
                       customization: { ...store.customDesign, productId: selectedProduct.id }
                     });

@@ -5,6 +5,7 @@ import { AssetImage, defaultProductAssetPath } from "../components/common/AssetI
 import { Seo } from "../components/common/Seo";
 import { Breadcrumbs, EmptyState, LoadingState, ProductCard, SectionIntro } from "../components/common/Ui";
 import { useAsyncData } from "../hooks/useAsyncData";
+import { resolveProductGallery } from "../lib/productPreview";
 import { catalogService, storefrontService } from "../services/api";
 import { useAppStore } from "../store/useAppStore";
 import { calculateDiscount, currencyFormatter } from "../utils/format";
@@ -47,6 +48,10 @@ export default function ProductPage() {
         .filter(Boolean),
     [data?.allProducts, product?.id, recentProductIds]
   );
+  const galleryAssets = useMemo(
+    () => product ? resolveProductGallery(product, selectedColor, selectedSize) : [],
+    [product, selectedColor, selectedSize]
+  );
 
   useEffect(() => {
     if (product) {
@@ -56,6 +61,10 @@ export default function ProductPage() {
       setActiveImage(0);
     }
   }, [addRecentProduct, product]);
+
+  useEffect(() => {
+    setActiveImage(0);
+  }, [product?.id, selectedColor, selectedSize]);
 
   if (loading) {
     return (
@@ -137,9 +146,9 @@ export default function ProductPage() {
             <div className="rounded-[36px] border border-black/6 bg-[radial-gradient(circle_at_top_left,_rgba(255,199,0,0.12),_transparent_26%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(248,244,236,0.92))] p-4 shadow-card sm:p-5">
               <div className="grid gap-4 md:grid-cols-[90px_minmax(0,1fr)] md:items-start">
                 <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 md:mx-0 md:max-h-[720px] md:flex-col md:overflow-y-auto md:overflow-x-hidden md:px-0">
-                  {product.images.map((image, index) => (
+                  {galleryAssets.map((image, index) => (
                     <button
-                      key={`${image}-${index}`}
+                      key={image.id}
                       type="button"
                       onClick={() => setActiveImage(index)}
                       className={`w-[124px] shrink-0 overflow-hidden rounded-[24px] border bg-white p-2 text-left transition md:w-full ${
@@ -147,7 +156,7 @@ export default function ProductPage() {
                       }`}
                     >
                       <AssetImage
-                        src={image}
+                        src={image.imageUrl}
                         alt={`${product.name} thumbnail ${index + 1}`}
                         expectedPath={defaultProductAssetPath(product.slug, index)}
                         missingLabel="Product image is missing"
@@ -160,7 +169,7 @@ export default function ProductPage() {
 
                 <div className="rounded-[30px] border border-black/6 bg-white/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] sm:p-6">
                   <AssetImage
-                    src={product.images[activeImage]}
+                    src={galleryAssets[activeImage]?.imageUrl ?? galleryAssets[0]?.imageUrl ?? product.images[0]}
                     alt={`${product.name} detailed product view`}
                     expectedPath={defaultProductAssetPath(product.slug, activeImage)}
                     missingLabel="Product image is missing"
@@ -220,17 +229,22 @@ export default function ProductPage() {
               <div className="mt-8 border-t border-black/8 pt-7">
                 <p className="text-sm font-semibold">Colours</p>
                 <div className="mt-3 flex flex-wrap gap-3">
-                  {product.colorOptions.map((color, index) => (
+                  {product.colorOptions.map((color) => (
                     <button
                       key={color}
                       type="button"
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => {
+                        setSelectedColor(color);
+                        setActiveImage(0);
+                      }}
                       className={`rounded-full border px-4 py-3 text-sm font-medium transition ${selectedColor === color ? "border-brand-black bg-brand-black text-white" : "border-black/10 hover:border-black/25"}`}
                     >
                       {color}
                       <span
                         className="ml-2 inline-block h-3 w-3 rounded-full align-middle"
-                        style={{ backgroundColor: product.variants[index]?.hex ?? "#111111" }}
+                        style={{
+                          backgroundColor: product.variants.find((variant) => variant.color === color)?.hex ?? "#111111"
+                        }}
                       />
                     </button>
                   ))}
@@ -244,7 +258,10 @@ export default function ProductPage() {
                     <button
                       key={size}
                       type="button"
-                      onClick={() => setSelectedSize(size)}
+                      onClick={() => {
+                        setSelectedSize(size);
+                        setActiveImage(0);
+                      }}
                       className={`min-w-[3.5rem] rounded-full border px-4 py-3 text-sm font-semibold transition ${selectedSize === size ? "border-brand-black bg-brand-black text-white" : "border-black/10 hover:border-black/25"}`}
                     >
                       {size}

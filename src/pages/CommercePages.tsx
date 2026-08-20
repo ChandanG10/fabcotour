@@ -119,7 +119,14 @@ export function CartPage() {
                               {row.product.name}
                             </h2>
                             <p className="mt-1 text-sm text-brand-black/55">{row.variant?.color} • {row.variant?.size}</p>
-                            {row.item.customization ? <p className="mt-2 text-sm text-brand-success">Custom design attached</p> : null}
+                            {row.item.customization ? (
+                              <div className="mt-2 text-sm">
+                                <p className="text-brand-success">Custom design attached</p>
+                                <p className="mt-1 text-brand-black/55">
+                                  {row.item.customization.productColor} • {row.item.customization.size} • {row.item.customization.layers.length} layer{row.item.customization.layers.length === 1 ? "" : "s"}
+                                </p>
+                              </div>
+                            ) : null}
                           </div>
                           <button type="button" onClick={() => removeFromCart(row.item.id)} className="shrink-0 rounded-full border border-black/10 p-2">
                             <Trash2 className="h-4 w-4" />

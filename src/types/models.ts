@@ -42,6 +42,18 @@ export interface ProductVariant {
   image: string;
 }
 
+export interface ProductImageAsset {
+  id: string;
+  imageUrl: string;
+  altText?: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+  variantColor?: string | null;
+  variantSize?: string | null;
+  variantView?: "front" | "back" | "left" | "right" | null;
+  isVariantPrimary?: boolean;
+}
+
 export interface Review {
   id: string;
   productId: string;
@@ -72,6 +84,7 @@ export interface Product {
   customisable: boolean;
   printMethods: string[];
   images: string[];
+  imageAssets?: ProductImageAsset[];
   hoverImage: string;
   videoPlaceholder: string;
   description: string;

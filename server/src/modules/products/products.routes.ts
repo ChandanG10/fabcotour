@@ -58,7 +58,45 @@ const imageSchema = z.object({
   publicId: z.string().min(1),
   altText: z.string().optional().nullable(),
   sortOrder: intFromUnknown(0).default(0),
-  isPrimary: z.boolean().default(false)
+  isPrimary: z.boolean().default(false),
+  variantColor: z.string().trim().min(1).optional().nullable(),
+  variantSize: z.string().trim().min(1).optional().nullable(),
+  variantView: z.enum(["front", "back", "left", "right"]).optional().nullable(),
+  isVariantPrimary: z.boolean().default(false)
+});
+
+const imageListSchema = z.array(imageSchema).superRefine((images, context) => {
+  const primaryColors = new Map<string, number>();
+
+  images.forEach((image, index) => {
+    if (image.variantColor && !image.variantView) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A mapped image must have a view.",
+        path: [index, "variantView"]
+      });
+    }
+    if (!image.variantColor && (image.variantSize || image.variantView || image.isVariantPrimary)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Choose a colour before assigning size, view or colour primary.",
+        path: [index, "variantColor"]
+      });
+    }
+    if (image.isVariantPrimary && image.variantColor) {
+      const colorKey = image.variantColor.trim().toLowerCase();
+      const previousIndex = primaryColors.get(colorKey);
+      if (previousIndex !== undefined) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Only one primary image can be assigned to each colour.",
+          path: [index, "isVariantPrimary"]
+        });
+      } else {
+        primaryColors.set(colorKey, index);
+      }
+    }
+  });
 });
 
 const variantSchema = z.object({
@@ -110,8 +148,28 @@ const productSchema = z.object({
   isCustomisable: z.boolean().default(true),
   isArchived: z.boolean().default(false),
   isVisible: z.boolean().default(true),
-  images: z.array(imageSchema).default([]),
+  images: imageListSchema.default([]),
   variants: z.array(variantSchema).default([])
+}).superRefine((product, context) => {
+  const colors = new Set(product.colors.map((color) => color.trim().toLowerCase()));
+  const sizes = new Set(product.sizes.map((size) => size.trim().toLowerCase()));
+
+  product.images.forEach((image, index) => {
+    if (image.variantColor && !colors.has(image.variantColor.trim().toLowerCase())) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Mapped image colour must exist in the product colours.",
+        path: ["images", index, "variantColor"]
+      });
+    }
+    if (image.variantSize && !sizes.has(image.variantSize.trim().toLowerCase())) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Mapped image size must exist in the product sizes.",
+        path: ["images", index, "variantSize"]
+      });
+    }
+  });
 });
 
 interface ProductRow extends RowDataPacket {
@@ -155,6 +213,10 @@ interface ProductImageRow extends RowDataPacket {
   alt_text: string | null;
   sort_order: number;
   is_primary: number;
+  variant_color: string | null;
+  variant_size: string | null;
+  variant_view: "front" | "back" | "left" | "right" | null;
+  is_variant_primary: number;
 }
 
 interface VariantRow extends RowDataPacket {
@@ -228,7 +290,11 @@ async function fetchProductsByWhere(whereClause = "1=1", params: unknown[] = [])
         publicId: image.public_id,
         altText: image.alt_text,
         sortOrder: image.sort_order,
-        isPrimary: Boolean(image.is_primary)
+        isPrimary: Boolean(image.is_primary),
+        variantColor: image.variant_color,
+        variantSize: image.variant_size,
+        variantView: image.variant_view,
+        isVariantPrimary: Boolean(image.is_variant_primary)
       })),
     variants: variants
       .filter((variant) => variant.product_id === product.id)
@@ -248,8 +314,10 @@ async function replaceImages(connection: PoolConnection, productId: string, imag
   await connection.query("DELETE FROM product_images WHERE product_id = ?", [productId]);
   for (const image of images) {
     await connection.query(
-      `INSERT INTO product_images (id, product_id, image_url, public_id, alt_text, sort_order, is_primary)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO product_images (
+        id, product_id, image_url, public_id, alt_text, sort_order, is_primary,
+        variant_color, variant_size, variant_view, is_variant_primary
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         image.id ?? uuid(),
         productId,
@@ -257,7 +325,11 @@ async function replaceImages(connection: PoolConnection, productId: string, imag
         image.publicId,
         image.altText ?? null,
         image.sortOrder,
-        image.isPrimary ? 1 : 0
+        image.isPrimary ? 1 : 0,
+        image.variantColor ?? null,
+        image.variantSize ?? null,
+        image.variantView ?? null,
+        image.isVariantPrimary ? 1 : 0
       ]
     );
   }

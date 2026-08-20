@@ -50,6 +50,10 @@ type UploadedImage = {
   altText: string | null;
   sortOrder: number;
   isPrimary: boolean;
+  variantColor: string | null;
+  variantSize: string | null;
+  variantView: "front" | "back" | "left" | "right" | null;
+  isVariantPrimary: boolean;
 };
 
 type ProductFormState = {
@@ -82,6 +86,7 @@ type ProductFormState = {
   isArchived: boolean;
   isVisible: boolean;
   images: UploadedImage[];
+  variants: StoreProduct["variants"];
 };
 
 type CategoryFormState = {
@@ -224,7 +229,8 @@ const defaultProductForm = (): ProductFormState => ({
   isCustomisable: true,
   isArchived: false,
   isVisible: true,
-  images: []
+  images: [],
+  variants: []
 });
 
 const defaultCategoryForm = (): CategoryFormState => ({
@@ -352,8 +358,13 @@ function toProductForm(product: StoreProduct): ProductFormState {
       publicId: image.publicId,
       altText: image.altText,
       sortOrder: image.sortOrder,
-      isPrimary: image.isPrimary
-    }))
+      isPrimary: image.isPrimary,
+      variantColor: image.variantColor ?? null,
+      variantSize: image.variantSize ?? null,
+      variantView: image.variantView ?? null,
+      isVariantPrimary: image.isVariantPrimary ?? false
+    })),
+    variants: product.variants
   };
 }
 
@@ -608,7 +619,11 @@ export default function AdminDashboardPage() {
             publicId: upload.publicId,
             altText: null,
             sortOrder: index,
-            isPrimary: false
+            isPrimary: false,
+            variantColor: null,
+            variantSize: null,
+            variantView: null,
+            isVariantPrimary: false
           }))
         );
         toast.success("Images uploaded.");
@@ -616,6 +631,36 @@ export default function AdminDashboardPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Image upload failed.");
     }
+  };
+
+  const updateProductImage = (imageIndex: number, patch: Partial<UploadedImage>) => {
+    setProductForm((state) => {
+      const current = state.images[imageIndex];
+      if (!current) {
+        return state;
+      }
+
+      const updated = { ...current, ...patch };
+      if (!updated.variantColor) {
+        updated.variantSize = null;
+        updated.variantView = null;
+        updated.isVariantPrimary = false;
+      }
+
+      const images = state.images.map((image, index) => index === imageIndex ? updated : image);
+      if (updated.isVariantPrimary && updated.variantColor) {
+        images.forEach((image, index) => {
+          if (
+            index !== imageIndex &&
+            image.variantColor?.trim().toLowerCase() === updated.variantColor?.trim().toLowerCase()
+          ) {
+            images[index] = { ...image, isVariantPrimary: false };
+          }
+        });
+      }
+
+      return { ...state, images };
+    });
   };
 
   const submitProduct = async () => {
@@ -653,9 +698,13 @@ export default function AdminDashboardPage() {
         publicId: image.publicId,
         altText: image.altText,
         sortOrder: Math.max(0, Math.trunc(index)),
-        isPrimary: image.isPrimary
+        isPrimary: image.isPrimary,
+        variantColor: image.variantColor,
+        variantSize: image.variantSize,
+        variantView: image.variantView,
+        isVariantPrimary: image.isVariantPrimary
       })),
-      variants: []
+      variants: productForm.variants
     };
 
     try {
@@ -1332,7 +1381,7 @@ export default function AdminDashboardPage() {
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <h3 className="text-sm font-semibold">Gallery Images</h3>
-                        <p className="text-sm text-brand-black/58">Upload JPG, PNG or WebP images. Set one primary image for storefront cards and detail pages.</p>
+                        <p className="text-sm text-brand-black/58">Upload JPG, PNG or WebP images. Set a storefront primary and optionally assign each image to a colour, size and view.</p>
                       </div>
                       <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold">
                         <Upload className="h-4 w-4" />
@@ -1380,7 +1429,7 @@ export default function AdminDashboardPage() {
                                   }))
                                 }
                               />
-                              Primary
+                              Storefront primary
                             </label>
                             <div className="flex gap-2">
                               <IconButton
@@ -1420,6 +1469,75 @@ export default function AdminDashboardPage() {
                               />
                             </div>
                           </div>
+                          <details className="mt-3 rounded-[18px] border border-black/8 bg-brand-offwhite p-3">
+                            <summary className="cursor-pointer text-sm font-semibold">Assign Variant</summary>
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                              <label className="space-y-1.5 text-xs font-semibold">
+                                <span>Colour</span>
+                                <select
+                                  value={image.variantColor ?? ""}
+                                  onChange={(event) =>
+                                    updateProductImage(index, {
+                                      variantColor: event.target.value || null,
+                                      variantView: event.target.value ? image.variantView ?? "front" : null
+                                    })
+                                  }
+                                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none"
+                                >
+                                  <option value="">Unassigned</option>
+                                  {Array.from(new Set([
+                                    ...splitCommaLines(productForm.colors),
+                                    ...(image.variantColor ? [image.variantColor] : [])
+                                  ])).map((color) => (
+                                    <option key={color} value={color}>{color}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="space-y-1.5 text-xs font-semibold">
+                                <span>Size</span>
+                                <select
+                                  value={image.variantSize ?? ""}
+                                  disabled={!image.variantColor}
+                                  onChange={(event) => updateProductImage(index, { variantSize: event.target.value || null })}
+                                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none disabled:opacity-50"
+                                >
+                                  <option value="">All Sizes</option>
+                                  {Array.from(new Set([
+                                    ...splitCommaLines(productForm.sizes),
+                                    ...(image.variantSize ? [image.variantSize] : [])
+                                  ])).map((size) => (
+                                    <option key={size} value={size}>{size}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="space-y-1.5 text-xs font-semibold">
+                                <span>View</span>
+                                <select
+                                  value={image.variantView ?? ""}
+                                  disabled={!image.variantColor}
+                                  onChange={(event) => updateProductImage(index, {
+                                    variantView: (event.target.value || null) as UploadedImage["variantView"]
+                                  })}
+                                  className="w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm outline-none disabled:opacity-50"
+                                >
+                                  <option value="">Select view</option>
+                                  <option value="front">Front</option>
+                                  <option value="back">Back</option>
+                                  <option value="left">Left</option>
+                                  <option value="right">Right</option>
+                                </select>
+                              </label>
+                              <label className="flex items-center gap-2 self-end rounded-xl border border-black/8 bg-white px-3 py-2.5 text-xs font-semibold">
+                                <input
+                                  type="checkbox"
+                                  disabled={!image.variantColor}
+                                  checked={image.isVariantPrimary}
+                                  onChange={(event) => updateProductImage(index, { isVariantPrimary: event.target.checked })}
+                                />
+                                Primary image for this colour
+                              </label>
+                            </div>
+                          </details>
                         </div>
                       ))}
                     </div>

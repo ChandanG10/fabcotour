@@ -31,7 +31,7 @@ interface AppState {
   duplicateDesignLayer: (layerId: string) => void;
   deleteDesignLayer: (layerId: string) => void;
   selectLayer: (layerId?: string) => void;
-  resetDesign: () => void;
+  resetDesign: (payload?: Partial<CustomDesign>) => void;
 }
 
 const baseDesign: CustomDesign = {
@@ -76,6 +76,11 @@ const calculateItemPrice = (item: CartItem) => {
   return (baseProductPrice + customizationCharge) * item.quantity;
 };
 
+const cloneCustomDesign = (design: CustomDesign): CustomDesign => ({
+  ...design,
+  layers: design.layers.map((layer) => ({ ...layer }))
+});
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -99,7 +104,14 @@ export const useAppStore = create<AppState>()(
         })),
       addToCart: (item) =>
         set((state) => ({
-          cart: [...state.cart, { ...item, id: `cart-${Date.now()}` }]
+          cart: [
+            ...state.cart,
+            {
+              ...item,
+              customization: item.customization ? cloneCustomDesign(item.customization) : undefined,
+              id: `cart-${Date.now()}`
+            }
+          ]
         })),
       updateCartQuantity: (id, quantity) =>
         set((state) => ({
@@ -152,7 +164,7 @@ export const useAppStore = create<AppState>()(
             variantId: item.variantId,
             quantity: item.quantity,
             price: calculateItemPrice(item) / item.quantity,
-            customization: item.customization
+            customization: item.customization ? cloneCustomDesign(item.customization) : undefined
           })),
           trackingSteps: [
             "Order placed",
@@ -210,7 +222,10 @@ export const useAppStore = create<AppState>()(
           selectedLayerId: state.selectedLayerId === layerId ? undefined : state.selectedLayerId
         })),
       selectLayer: (layerId) => set({ selectedLayerId: layerId }),
-      resetDesign: () => set({ customDesign: baseDesign, selectedLayerId: baseDesign.layers[0].id })
+      resetDesign: (payload) => {
+        const design = cloneCustomDesign({ ...baseDesign, ...payload, layers: baseDesign.layers });
+        set({ customDesign: design, selectedLayerId: design.layers[0]?.id });
+      }
     }),
     {
       name: "fab-couture-store"

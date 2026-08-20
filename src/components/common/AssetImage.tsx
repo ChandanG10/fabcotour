@@ -72,6 +72,10 @@ export function AssetImage({
   );
 
   useEffect(() => {
+    setAssetFailed(false);
+  }, [src]);
+
+  useEffect(() => {
     if (!missing) {
       return;
     }
