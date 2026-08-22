@@ -213,6 +213,13 @@ export const adminService = {
   getProduct(id: string) {
     return apiRequest<ItemResponse<StoreProduct>>(`/admin/products/${id}`);
   },
+  suggestProductSku(categoryId: string, subcategoryId = "") {
+    const query = new URLSearchParams({ categoryId });
+    if (subcategoryId) {
+      query.set("subcategoryId", subcategoryId);
+    }
+    return apiRequest<{ sku: string }>(`/admin/products/sku/suggestion?${query.toString()}`);
+  },
   createProduct(payload: Record<string, unknown>) {
     return apiRequest<ItemResponse<StoreProduct>>("/admin/products", {
       method: "POST",

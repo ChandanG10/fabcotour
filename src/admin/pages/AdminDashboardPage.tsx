@@ -386,6 +386,7 @@ function toCategoryForm(category: StoreCategory): CategoryFormState {
 export default function AdminDashboardPage() {
   const { admin, loading, refresh, setAdmin } = useAdminAuth();
   const authFailureHandledRef = useRef(false);
+  const skuSuggestionRequestRef = useRef(0);
   const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -411,6 +412,7 @@ export default function AdminDashboardPage() {
   const [homepageForm, setHomepageForm] = useState<HomepagePayload>(emptyHomepage());
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [quickSubcategoryForm, setQuickSubcategoryForm] = useState<QuickSubcategoryFormState>(defaultQuickSubcategoryForm());
+  const [skuGenerating, setSkuGenerating] = useState(false);
 
   const categories = useMemo(() => categoriesData?.items ?? [], [categoriesData?.items]);
   const parentCategoryOptions = useMemo(() => categories.filter((category) => !category.parentId), [categories]);
@@ -442,6 +444,41 @@ export default function AdminDashboardPage() {
   const storefrontPlacement = selectedParentCategory
     ? `${selectedParentCategory.name}${selectedSubcategory ? ` > ${selectedSubcategory.name}` : ""}`
     : "No category selected";
+
+  const suggestProductSku = async (categoryId: string, subcategoryId = "") => {
+    if (!categoryId) {
+      skuSuggestionRequestRef.current += 1;
+      setSkuGenerating(false);
+      return;
+    }
+
+    const requestId = skuSuggestionRequestRef.current + 1;
+    const productId = productForm.id;
+    skuSuggestionRequestRef.current = requestId;
+    setSkuGenerating(true);
+
+    try {
+      const response = await adminService.suggestProductSku(categoryId, subcategoryId);
+      if (skuSuggestionRequestRef.current !== requestId) {
+        return;
+      }
+
+      setProductForm((state) => {
+        if (state.id !== productId || state.categoryId !== categoryId || state.subcategoryId !== subcategoryId) {
+          return state;
+        }
+        return { ...state, sku: response.sku };
+      });
+    } catch (error) {
+      if (skuSuggestionRequestRef.current === requestId) {
+        toast.error(error instanceof Error ? error.message : "SKU could not be generated. You can enter one manually.");
+      }
+    } finally {
+      if (skuSuggestionRequestRef.current === requestId) {
+        setSkuGenerating(false);
+      }
+    }
+  };
 
   const runAction = async (key: string, task: () => Promise<void>) => {
     setBusy(key);
@@ -878,6 +915,7 @@ export default function AdminDashboardPage() {
         ...state,
         subcategoryId: nextSubcategory.id
       }));
+      void suggestProductSku(productForm.categoryId, nextSubcategory.id);
       toast.success("Subcategory created and selected.");
     });
   };
@@ -1238,7 +1276,18 @@ export default function AdminDashboardPage() {
                 <Panel title={productForm.id ? "Edit Product" : "Create Product"} description="Cloudinary uploads are attached here and flow straight to the storefront API.">
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="Name"><input value={productForm.name} onChange={(event) => setProductForm((state) => ({ ...state, name: event.target.value }))} className={inputClass} /></Field>
-                    <Field label="SKU"><input value={productForm.sku} onChange={(event) => setProductForm((state) => ({ ...state, sku: event.target.value }))} className={inputClass} /></Field>
+                    <Field
+                      label="SKU"
+                      hint={skuGenerating ? "Generating from your selection..." : "Generated from category and subcategory. You can edit it."}
+                    >
+                      <input
+                        value={productForm.sku}
+                        onChange={(event) => setProductForm((state) => ({ ...state, sku: event.target.value.toUpperCase() }))}
+                        className={inputClass}
+                        placeholder="Select a category to generate"
+                        aria-busy={skuGenerating}
+                      />
+                    </Field>
                     <Field label="Slug"><input value={productForm.slug} onChange={(event) => setProductForm((state) => ({ ...state, slug: event.target.value }))} className={inputClass} /></Field>
                     <Field label="Audience">
                       <select
@@ -1271,6 +1320,7 @@ export default function AdminDashboardPage() {
                                 audience: selectedCategory?.audience ?? state.audience
                               }));
                               setQuickSubcategoryForm(defaultQuickSubcategoryForm());
+                              void suggestProductSku(nextCategoryId);
                             }}
                             className={inputClass}
                           >
@@ -1281,7 +1331,15 @@ export default function AdminDashboardPage() {
                           </select>
                         </Field>
                         <Field label="Subcategory">
-                          <select value={productForm.subcategoryId} onChange={(event) => setProductForm((state) => ({ ...state, subcategoryId: event.target.value }))} className={inputClass}>
+                          <select
+                            value={productForm.subcategoryId}
+                            onChange={(event) => {
+                              const nextSubcategoryId = event.target.value;
+                              setProductForm((state) => ({ ...state, subcategoryId: nextSubcategoryId }));
+                              void suggestProductSku(productForm.categoryId, nextSubcategoryId);
+                            }}
+                            className={inputClass}
+                          >
                             <option value="">
                               {productForm.categoryId ? "Optional subcategory" : "Select category first"}
                             </option>
@@ -2122,14 +2180,19 @@ function SubPanel({
 
 function Field({
   label,
+  hint,
   children
 }: {
-  label: string;
+  label: React.ReactNode;
+  hint?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-semibold text-brand-black">{label}</span>
+      <span className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <span className="text-sm font-semibold text-brand-black">{label}</span>
+        {hint ? <span className="text-xs font-medium text-brand-black/52">{hint}</span> : null}
+      </span>
       {children}
     </label>
   );

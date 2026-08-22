@@ -52,6 +52,30 @@ const nullableNumberFromUnknown = () =>
     return Number.isFinite(parsed) ? parsed : value;
   }, z.number().nonnegative().nullable());
 
+const skuSuggestionQuerySchema = z.object({
+  categoryId: z.string().min(1),
+  subcategoryId: z.string().min(1).optional()
+});
+
+function toSkuCode(value: string) {
+  const parts = value
+    .toUpperCase()
+    .split(/[^A-Z0-9]+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) {
+    return "GEN";
+  }
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 3).padEnd(3, "X");
+  }
+
+  const initials = parts.map((part) => part[0]).join("").slice(0, 3);
+  const remainingCharacters = parts.join("").slice(initials.length);
+  return `${initials}${remainingCharacters}`.slice(0, 3).padEnd(3, "X");
+}
+
 const imageSchema = z.object({
   id: z.string().min(1).optional(),
   imageUrl: z.string().url(),
@@ -386,6 +410,49 @@ productsRouter.get(
       items: full,
       meta: getPaginationMeta(Number(countRows[0]?.total ?? 0), page, limit)
     });
+  })
+);
+
+productsRouter.get(
+  "/sku/suggestion",
+  requireAdminAuth,
+  asyncHandler(async (request, response) => {
+    const { categoryId, subcategoryId } = skuSuggestionQuerySchema.parse(request.query);
+    const categoryIds = subcategoryId ? [categoryId, subcategoryId] : [categoryId];
+    const [categoryRows] = await pool.query<RowDataPacket[]>(
+      `SELECT id, parent_id, name
+       FROM categories
+       WHERE deleted_at IS NULL AND id IN (${categoryIds.map(() => "?").join(", ")})`,
+      categoryIds
+    );
+
+    const category = categoryRows.find((row) => String(row.id) === categoryId);
+    const subcategory = subcategoryId
+      ? categoryRows.find((row) => String(row.id) === subcategoryId)
+      : undefined;
+
+    if (!category || category.parent_id) {
+      throw new HttpError(400, "Choose a valid main category to generate the SKU.");
+    }
+
+    if (subcategoryId && (!subcategory || String(subcategory.parent_id) !== categoryId)) {
+      throw new HttpError(400, "Choose a subcategory that belongs to the selected main category.");
+    }
+
+    const prefix = ["FCT", toSkuCode(String(category.name)), subcategory ? toSkuCode(String(subcategory.name)) : null]
+      .filter(Boolean)
+      .join("-");
+    const [skuRows] = await pool.query<RowDataPacket[]>(
+      "SELECT sku FROM products WHERE sku LIKE ?",
+      [`${prefix}-%`]
+    );
+    const highestSequence = skuRows.reduce((highest, row) => {
+      const match = String(row.sku).match(/-(\d+)$/);
+      return match ? Math.max(highest, Number(match[1])) : highest;
+    }, 0);
+    const sku = `${prefix}-${String(highestSequence + 1).padStart(3, "0")}`;
+
+    response.json({ sku });
   })
 );
 
