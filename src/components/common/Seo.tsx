@@ -12,7 +12,7 @@ interface SeoProps {
 export function Seo({ title, description, path = "/", image, structuredData }: SeoProps) {
   const canonical = `${siteConfig.baseUrl}${path}`;
   const pageTitle = `${title} | ${siteConfig.name}`;
-  const graphImage = image ?? `${siteConfig.baseUrl}/favicon.svg`;
+  const graphImage = image ?? `${siteConfig.baseUrl}/favicon.png`;
 
   return (
     <Helmet>
