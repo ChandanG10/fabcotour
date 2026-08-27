@@ -171,7 +171,7 @@ export function normalizeHomepagePayload(payload: HomepagePayload): HomepagePayl
       primaryButtonLink: hero.primaryButtonLink ?? "/customise",
       secondaryButtonLabel: hero.secondaryButtonLabel ?? "Shop New Arrivals",
       secondaryButtonLink: hero.secondaryButtonLink ?? "/shop",
-      badge: hero.badge ?? "DESIGNED BY YOU • MADE BY FAB COUTURE",
+      badge: hero.badge ?? "DESIGNED BY YOU • MADE BY Fabpodd",
       images,
       imageUrl: primaryImage?.imageUrl ?? null,
       imagePublicId: primaryImage?.imagePublicId ?? null
@@ -189,7 +189,7 @@ export function normalizeHomepagePayload(payload: HomepagePayload): HomepagePayl
       productIds: Array.isArray(newArrivalsSection.productIds) ? newArrivalsSection.productIds : []
     },
     siteSettings: {
-      siteName: siteSettings.siteName ?? "FAB COUTURE",
+      siteName: siteSettings.siteName ?? "Fabpodd",
       announcementBar: {
         enabled: announcementBar.enabled ?? true,
         items: Array.isArray(announcementBar.items) ? announcementBar.items : []

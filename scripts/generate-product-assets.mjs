@@ -108,7 +108,7 @@ const renderImage = ({ name, subtype, audience, kind, view, serial }) => {
   </g>
   <rect x="86" y="682" width="140" height="36" rx="18" fill="${view === "Styled View" ? altFill : secondary}"/>
   <text x="116" y="705" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">${view}</text>
-  <text x="86" y="754" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">FAB COUTURE PRODUCT IMAGE</text>
+  <text x="86" y="754" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">Fabpodd PRODUCT IMAGE</text>
   <text x="86" y="784" fill="#6B7280" font-family="Inter, Arial, sans-serif" font-size="18">Local asset generated for this product only</text>
   <circle cx="614" cy="720" r="16" fill="${colorTokens[0][1]}"/>
   <circle cx="654" cy="720" r="16" fill="${accent}"/>

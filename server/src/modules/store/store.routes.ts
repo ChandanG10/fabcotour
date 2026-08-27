@@ -48,7 +48,7 @@ storeRouter.get(
       featuredSection: parseJsonValue(home?.featured_section, {}),
       newArrivalsSection: parseJsonValue(home?.new_arrivals_section, {}),
       siteSettings: {
-        siteName: site?.site_name ?? "FAB COUTURE",
+        siteName: site?.site_name ?? "Fabpodd",
         announcementBar: parseJsonValue(site?.announcement_bar, { enabled: true, items: [] }),
         supportEmail: site?.support_email ?? null,
         supportPhone: site?.support_phone ?? null,

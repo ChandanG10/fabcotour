@@ -58,9 +58,9 @@ export function ProductCard({ product }: { product: Product }) {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="group overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-sm transition duration-500 ease-luxe hover:-translate-y-1 hover:shadow-xl md:rounded-[26px] md:border-black/6"
+      className="group flex h-full flex-col overflow-hidden rounded-[16px] border border-[#E5E7EB] bg-white shadow-sm transition duration-500 ease-luxe hover:-translate-y-1 hover:shadow-xl md:rounded-[26px] md:border-black/6"
     >
-      <div className="relative overflow-hidden">
+      <div className="relative shrink-0 overflow-hidden">
         <Link to={`/product/${product.slug}`} aria-label={product.name}>
           <AssetImage
             src={product.images[0]}
@@ -71,7 +71,7 @@ export function ProductCard({ product }: { product: Product }) {
             fallbackClassName="aspect-square w-full md:aspect-[1/1.02]"
           />
         </Link>
-        <div className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-brand-yellow transition duration-500 ease-luxe group-hover:scale-x-100" />
+        <div className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-brand-cyan transition duration-500 ease-luxe group-hover:scale-x-100" />
         <button
           type="button"
           aria-label="Toggle wishlist"
@@ -81,10 +81,10 @@ export function ProductCard({ product }: { product: Product }) {
           }}
           className="absolute right-3 top-3 rounded-full bg-white/92 p-2 text-brand-black shadow-soft transition duration-300 ease-luxe group-hover:scale-110 md:right-4 md:top-4 md:p-2.5"
         >
-          <Heart className={cn("h-4 w-4", wished && "fill-brand-yellow text-brand-yellow")} />
+          <Heart className={cn("h-4 w-4", wished && "fill-brand-pink text-brand-pink")} />
         </button>
         <div className="absolute left-3 top-3 hidden gap-2 md:left-4 md:top-4 md:flex">
-          <span className="rounded-full bg-brand-yellow px-2.5 py-1 text-[10px] font-semibold text-brand-black md:px-3 md:text-[11px]">
+          <span className="rounded-full bg-brand-orange px-2.5 py-1 text-[10px] font-semibold text-brand-navy md:px-3 md:text-[11px]">
             {discount}% OFF
           </span>
           {product.badge ? (
@@ -118,27 +118,27 @@ export function ProductCard({ product }: { product: Product }) {
           </Link>
         </div>
       </div>
-      <div className="space-y-2.5 p-3 transition duration-500 ease-luxe group-hover:-translate-y-1 md:space-y-4 md:p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+      <div className="flex flex-1 flex-col p-3 transition duration-500 ease-luxe group-hover:-translate-y-1 md:p-5">
+        <div className="flex min-h-10 items-start justify-between gap-4 md:min-h-[9rem]">
+          <div className="min-w-0">
             <p className="hidden text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-muted md:block">FabCoutur</p>
-            <Link to={`/product/${product.slug}`} className="block text-[15px] font-semibold leading-5 text-brand-black md:mt-2 md:font-heading md:text-lg md:font-bold md:leading-6">
+            <Link to={`/product/${product.slug}`} className="line-clamp-2 text-[15px] font-semibold leading-5 text-brand-black md:mt-2 md:line-clamp-3 md:font-heading md:text-lg md:font-bold md:leading-6">
               {product.name}
             </Link>
-            <p className="mt-1 hidden text-sm text-brand-muted md:block">{product.material}</p>
+            <p className="mt-1 hidden text-sm leading-5 text-brand-muted md:line-clamp-2">{product.material}</p>
           </div>
           {product.customisable ? (
-            <span className="hidden rounded-full bg-brand-soft px-3 py-1 text-[11px] font-semibold text-brand-charcoal md:inline-flex">
+            <span className="hidden shrink-0 rounded-full bg-brand-soft px-3 py-1 text-[11px] font-semibold text-brand-charcoal md:inline-flex">
               Customisable
             </span>
           ) : null}
         </div>
-        <div className="hidden items-center gap-2 text-sm text-brand-muted md:flex">
-          <Star className="h-4 w-4 fill-brand-yellow text-brand-yellow" />
+        <div className="mt-2.5 hidden items-center gap-2 text-sm text-brand-muted md:flex">
+          <Star className="h-4 w-4 fill-brand-orange text-brand-orange" />
           <span>{product.rating.toFixed(1)}</span>
           <span>({product.reviewCount})</span>
         </div>
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="mt-2.5 flex items-center gap-2 md:mt-4 md:gap-3">
           <span className="font-semibold text-brand-black">{currencyFormatter.format(product.price)}</span>
           <span className="hidden text-sm text-brand-muted line-through md:inline">
             {currencyFormatter.format(product.originalPrice)}
@@ -147,7 +147,7 @@ export function ProductCard({ product }: { product: Product }) {
             {discount}% off
           </span>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-auto flex min-h-7 flex-wrap content-start gap-2 pt-2.5 md:min-h-[4.5rem] md:pt-4">
           {product.colorOptions.slice(0, 4).map((color, index) => (
             <span
               key={color}

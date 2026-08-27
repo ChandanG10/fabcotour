@@ -295,7 +295,7 @@ CREATE TABLE IF NOT EXISTS homepage_content (
 
 CREATE TABLE IF NOT EXISTS site_settings (
   id INT PRIMARY KEY DEFAULT 1,
-  site_name VARCHAR(160) NOT NULL DEFAULT 'FAB COUTURE',
+  site_name VARCHAR(160) NOT NULL DEFAULT 'Fabpodd',
   announcement_bar JSON NOT NULL,
   support_email VARCHAR(255) NULL,
   support_phone VARCHAR(32) NULL,
@@ -315,7 +315,7 @@ VALUES (
     'primaryButtonLink', '/customise',
     'secondaryButtonLabel', 'Shop New Arrivals',
     'secondaryButtonLink', '/shop',
-    'badge', 'DESIGNED BY YOU • MADE BY FAB COUTURE',
+    'badge', 'DESIGNED BY YOU • MADE BY Fabpodd',
     'images', JSON_ARRAY(),
     'imageUrl', NULL,
     'imagePublicId', NULL
@@ -330,7 +330,7 @@ ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
 INSERT INTO site_settings (id, site_name, announcement_bar, support_email, support_phone, business_hours, social_links)
 VALUES (
   1,
-  'FAB COUTURE',
+  'Fabpodd',
   JSON_OBJECT(
     'enabled', true,
     'items', JSON_ARRAY(

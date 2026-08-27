@@ -64,7 +64,7 @@ export function HeroSection({
         <div className="absolute inset-0 hidden lg:block">
           <AssetImage
             src={activeImage}
-            alt="FAB COUTURE custom clothing for men, women and kids with corporate gifts"
+            alt="Fabpodd custom clothing for men, women and kids with corporate gifts"
             expectedPath={heroAssetPath}
             missingLabel="Hero image is missing"
             imageClassName="hero-stage-image"
@@ -95,9 +95,9 @@ export function HeroSection({
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.04, ease: reducedEasing }}
-                  className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-[12px] font-semibold tracking-[0.1em] text-brand-charcoal shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.1em] text-brand-charcoal shadow-sm"
                 >
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-yellow/20 text-brand-black">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-orange/20 text-brand-navy">
                     <Sparkles className="h-3.5 w-3.5" />
                   </span>
                   <span>{badge.split("•")[0]?.trim() ?? badge}</span>
@@ -129,7 +129,7 @@ export function HeroSection({
                 >
                   <Link
                     to={primaryButtonLink}
-                    className="inline-flex h-[52px] w-full items-center justify-between rounded-full bg-[#FFBD16] px-[18px] text-[16px] font-bold text-brand-black"
+                    className="inline-flex h-[52px] w-full items-center justify-between rounded-full bg-brand-cyan px-[18px] text-[16px] font-bold text-brand-navy"
                   >
                     <span className="whitespace-nowrap">{primaryButtonLabel}</span>
                     <ArrowRight className="h-4 w-4 shrink-0" />
@@ -151,7 +151,7 @@ export function HeroSection({
               <div className="absolute inset-0">
                 <AssetImage
                   src={mobileHeroReference}
-                  alt="FAB COUTURE custom clothing for men, women and kids with corporate gifts"
+                  alt="Fabpodd custom clothing for men, women and kids with corporate gifts"
                   expectedPath={mobileHeroAssetPath}
                   missingLabel="Hero image is missing"
                   imageClassName="h-full w-full object-cover object-[66%_center] min-[390px]:object-[68%_center] min-[430px]:object-[70%_center]"
@@ -166,7 +166,7 @@ export function HeroSection({
                   initial={{ opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.65, delay: 0.04, ease: reducedEasing }}
-                  className="inline-flex max-w-max items-center gap-2 rounded-full border border-[#E8E5DF] bg-white px-3.5 py-2.5 text-[10px] font-semibold tracking-[0.12em] text-brand-charcoal shadow-sm min-[390px]:px-4 min-[390px]:text-[11px]"
+                  className="inline-flex max-w-max items-center gap-2 rounded-full border border-[#E8E5DF] bg-white px-3.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-charcoal shadow-sm min-[390px]:px-4 min-[390px]:text-[11px]"
                 >
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-brand-yellow/20 text-brand-black">
                     <Sparkles className="h-3.5 w-3.5" />
@@ -201,7 +201,7 @@ export function HeroSection({
                   ) : null}
                 </motion.h1>
 
-                <span className="mt-4 h-3.5 w-3.5 rounded-full bg-brand-yellow" />
+                <span className="mt-4 h-3.5 w-3.5 rounded-full bg-brand-pink" />
 
                 <motion.p
                   initial={{ opacity: 0, y: 18 }}
@@ -265,14 +265,14 @@ export function HeroSection({
                   ))}
                 </div>
               </div>
-              <div className="pointer-events-none absolute -left-16 bottom-0 hidden h-32 w-32 rounded-full bg-brand-yellow lg:block" />
+              <div className="pointer-events-none absolute -left-16 bottom-0 hidden h-32 w-32 rounded-full bg-brand-cyan lg:block" />
             </>
           ) : null}
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.04, ease: reducedEasing }}
-            className="mb-5 hidden max-w-max items-center gap-3 rounded-full border border-[#E8E5DF] bg-white px-4 py-3 text-[0.78rem] font-semibold tracking-[0.08em] text-brand-charcoal shadow-sm sm:mb-6 sm:px-5 sm:py-4 sm:text-sm lg:hidden"
+            className="mb-5 hidden max-w-max items-center gap-3 rounded-full border border-[#E8E5DF] bg-white px-4 py-3 text-[0.78rem] font-semibold uppercase tracking-[0.08em] text-brand-charcoal shadow-sm sm:mb-6 sm:px-5 sm:py-4 sm:text-sm lg:hidden"
           >
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-yellow/20 text-brand-black">
               <Sparkles className="h-4 w-4" />
@@ -291,7 +291,7 @@ export function HeroSection({
                 {index < array.length - 1 ? <br /> : null}
               </span>
             ))}
-            <span className="ml-2 inline-block h-4 w-4 rounded-full bg-brand-yellow align-middle sm:h-5 sm:w-5" />
+            <span className="ml-2 inline-block h-4 w-4 rounded-full bg-brand-pink align-middle sm:h-5 sm:w-5" />
           </motion.h1>
 
           <motion.p
@@ -323,7 +323,7 @@ export function HeroSection({
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.2, ease: reducedEasing }}
-            className="mt-6 hidden max-w-max items-center gap-3 rounded-full border border-[#E8E5DF] bg-white px-4 py-3 text-[0.78rem] font-semibold tracking-[0.08em] text-brand-charcoal shadow-sm sm:mt-8 sm:px-5 sm:py-4 sm:text-sm lg:inline-flex"
+            className="mt-6 hidden max-w-max items-center gap-3 rounded-full border border-[#E8E5DF] bg-white px-4 py-3 text-[0.78rem] font-semibold uppercase tracking-[0.08em] text-brand-charcoal shadow-sm sm:mt-8 sm:px-5 sm:py-4 sm:text-sm lg:inline-flex"
           >
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand-yellow/20 text-brand-black">
               <Sparkles className="h-4 w-4" />
@@ -340,7 +340,7 @@ export function HeroSection({
                   aria-label={`Go to hero slide ${index + 1}`}
                   aria-pressed={index === activeIndex}
                   onClick={() => setActiveIndex(index)}
-                  className={`h-2.5 rounded-full transition-all ${index === activeIndex ? "w-8 bg-brand-yellow" : "w-2.5 bg-brand-black/20 hover:bg-brand-black/35"}`}
+                  className={`h-2.5 rounded-full transition-all ${index === activeIndex ? "w-8 bg-brand-pink" : "w-2.5 bg-brand-black/20 hover:bg-brand-black/35"}`}
                 />
               ))}
             </div>
@@ -354,7 +354,7 @@ export function HeroSection({
             transition={{ duration: 0.75, delay: 0.08, ease: reducedEasing }}
             className="relative -ml-6 min-h-[520px] overflow-hidden bg-[#F8F1E3] sm:-ml-10 lg:ml-0 lg:min-h-[560px]"
           >
-            <div className="pointer-events-none absolute right-[6%] top-[10%] h-[54%] w-[62%] rounded-full bg-brand-yellow/95 sm:right-[10%] sm:top-[12%] sm:h-[58%] sm:w-[58%]" />
+            <div className="pointer-events-none absolute right-[6%] top-[10%] h-[54%] w-[62%] rounded-full bg-brand-orange/95 sm:right-[10%] sm:top-[12%] sm:h-[58%] sm:w-[58%]" />
             <div className="pointer-events-none absolute left-[2%] top-[56%] hidden h-[120px] w-[120px] grid-cols-5 gap-[1px] opacity-35 sm:grid lg:left-[4%] lg:top-[44%] lg:h-[180px] lg:w-[180px]">
               {Array.from({ length: 25 }).map((_, index) => (
                 <span key={index} className="border border-black/25" />
@@ -363,7 +363,7 @@ export function HeroSection({
             <div className="relative z-10 h-full">
               <AssetImage
                 src={null}
-                alt="FAB COUTURE custom clothing for men, women and kids with corporate gifts"
+                alt="Fabpodd custom clothing for men, women and kids with corporate gifts"
                 expectedPath={heroAssetPath}
                 missingLabel="Hero image is missing"
                 imageClassName="hero-image"

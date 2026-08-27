@@ -271,7 +271,7 @@ const emptyHomepage = (): HomepagePayload => ({
     primaryButtonLink: "/customise",
     secondaryButtonLabel: "Shop New Arrivals",
     secondaryButtonLink: "/shop",
-    badge: "DESIGNED BY YOU • MADE BY FAB COUTURE",
+    badge: "DESIGNED BY YOU • MADE BY Fabpodd",
     images: [],
     imageUrl: null,
     imagePublicId: null
@@ -289,7 +289,7 @@ const emptyHomepage = (): HomepagePayload => ({
     productIds: []
   },
   siteSettings: {
-    siteName: "FAB COUTURE",
+    siteName: "Fabpodd",
     announcementBar: {
       enabled: true,
       items: []
@@ -1003,7 +1003,7 @@ export default function AdminDashboardPage() {
         <aside className={`fixed inset-y-0 left-0 z-40 flex w-[min(280px,calc(100vw-24px))] flex-col overflow-y-auto border-r border-black/8 bg-[#0b0b0b] px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] text-white transition-transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:w-[280px] lg:translate-x-0`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#ffc928]">FAB COUTURE</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#ffc928]">Fabpodd</p>
               <h1 className="mt-2 font-heading text-2xl font-extrabold">Admin Panel</h1>
             </div>
             <button type="button" aria-label="Close navigation" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border border-white/10 lg:hidden" onClick={() => setSidebarOpen(false)}>

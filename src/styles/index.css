@@ -3,18 +3,24 @@
 @tailwind utilities;
 
 :root {
-  --brand-yellow: #ffc928;
-  --brand-yellow-dark: #e5a900;
-  --brand-charcoal: #111827;
-  --brand-black: #0b0b0b;
-  --brand-cream: #faf9f6;
-  --brand-soft: #f5f3ee;
+  --brand-navy: #07163d;
+  --brand-cyan: #08b9d4;
+  --brand-cyan-dark: #008ca5;
+  --brand-pink: #f72572;
+  --brand-orange: #ffb21a;
+  --brand-purple: #7b4aa4;
+  --brand-yellow: var(--brand-cyan);
+  --brand-yellow-dark: var(--brand-cyan-dark);
+  --brand-charcoal: #13213f;
+  --brand-black: var(--brand-navy);
+  --brand-cream: #f8fafc;
+  --brand-soft: #f2f7fa;
   --brand-gray: #6b7280;
   --announcement-height: 36px;
   --header-height: 82px;
   --total-header-height: 118px;
-  color: #0b0b0b;
-  background: #faf9f6;
+  color: var(--brand-navy);
+  background: var(--brand-cream);
   font-family: Inter, sans-serif;
 }
 
@@ -27,13 +33,26 @@ html {
 body {
   margin: 0;
   min-width: 320px;
-  background: #faf9f6;
-  color: #0b0b0b;
+  background: var(--brand-cream);
+  color: var(--brand-navy);
   overflow-x: hidden;
 }
 
 * {
   box-sizing: border-box;
+}
+
+::selection {
+  background: rgb(8 185 212 / 0.28);
+  color: var(--brand-navy);
+}
+
+:where(input, textarea, select) {
+  caret-color: var(--brand-pink);
+}
+
+html {
+  scrollbar-color: var(--brand-cyan) var(--brand-soft);
 }
 
 a {

@@ -28,11 +28,11 @@ const pageContent: Record<
   }
 > = {
   "/about": {
-    title: "About FAB COUTURE",
+    title: "About Fabpodd",
     description:
-      "FAB COUTURE transforms ideas into wearable and giftable products. The brand serves individuals, creators, teams, events and businesses through quality apparel, thoughtful personalisation and dependable fulfilment.",
+      "Fabpodd transforms ideas into wearable and giftable products. The brand serves individuals, creators, teams, events and businesses through quality apparel, thoughtful personalisation and dependable fulfilment.",
     body: [
-      "Brand story: FAB COUTURE was conceived as a premium bridge between custom expression and dependable production, with equal care for a single-piece gift and a multi-city corporate drop.",
+      "Brand story: Fabpodd was conceived as a premium bridge between custom expression and dependable production, with equal care for a single-piece gift and a multi-city corporate drop.",
       "Mission: Turn ideas into products people actually want to wear, use and gift.",
       "Vision: Become the preferred premium custom-merchandise partner for modern Indian creators and businesses.",
       "Quality commitment: Materials, fit, print alignment and packaging are checked before dispatch.",
@@ -44,11 +44,11 @@ const pageContent: Record<
   },
   "/privacy-policy": {
     title: "Privacy Policy",
-    description: "How FAB COUTURE collects, uses, shares and protects personal information.",
+    description: "How Fabpodd collects, uses, shares and protects personal information.",
     body: [
       "Effective date: 20 August 2026. We collect information you provide when creating an account, placing an order, requesting support or submitting artwork, including your name, contact details, delivery address, order information and customisation files.",
       "We use this information to fulfil orders, process payments, provide customer support, prevent fraud, comply with legal obligations and, where you have agreed, send relevant service or marketing communications.",
-      "We share only the information needed with service providers such as payment gateways, Cloudinary, hosting, analytics and delivery partners. We do not sell personal information. Payment credentials are handled by the payment provider and are not stored by FAB COUTURE.",
+      "We share only the information needed with service providers such as payment gateways, Cloudinary, hosting, analytics and delivery partners. We do not sell personal information. Payment credentials are handled by the payment provider and are not stored by Fabpodd.",
       "Order and accounting records are retained for the period required by applicable law. Support records and uploaded artwork are retained only as long as reasonably necessary for the stated purpose, dispute handling and legitimate business records.",
       `You may request access, correction or deletion of eligible personal information, withdraw consent where applicable, or raise a grievance by writing to ${siteConfig.grievanceEmail}. We may verify your identity before processing a request.`,
       "We use reasonable technical and organisational safeguards, but no internet transmission is completely risk-free. Material policy changes will be posted here with an updated effective date."
@@ -56,12 +56,12 @@ const pageContent: Record<
   },
   "/terms-and-conditions": {
     title: "Terms and Conditions",
-    description: "Terms governing use of the FAB COUTURE website and purchases.",
+    description: "Terms governing use of the Fabpodd website and purchases.",
     body: [
       "By using this website or placing an order, you confirm that you are legally capable of entering a contract and that the information you provide is accurate. Product availability, pricing and offers may change before an order is accepted.",
       "An order acknowledgement is not final acceptance. Acceptance occurs when payment is confirmed or, for cash on delivery, when the order is confirmed for fulfilment. We may cancel and refund an order affected by stock, pricing, fraud-screening or delivery restrictions.",
       "Product colours may vary slightly by screen and production batch. Measurements and delivery estimates are approximate. Custom artwork proofs, spelling, placement, colour and size selections approved by the customer are treated as final subject to our customised-product policy.",
-      "You retain rights in artwork you own. By uploading content, you confirm that you have permission to reproduce it and grant FAB COUTURE the limited right to use it to produce and support your order. Unlawful, infringing or abusive content may be rejected.",
+      "You retain rights in artwork you own. By uploading content, you confirm that you have permission to reproduce it and grant Fabpodd the limited right to use it to produce and support your order. Unlawful, infringing or abusive content may be rejected.",
       "Nothing in these terms limits rights that cannot lawfully be excluded. These terms are governed by the laws of India; courts with jurisdiction over our disclosed business location will have jurisdiction, subject to applicable consumer law."
     ]
   },
@@ -90,7 +90,7 @@ const pageContent: Record<
     description: "When an order can be cancelled and how refunds are handled.",
     body: [
       "A ready-stock order may be cancelled before dispatch. A customised or made-to-order product may be cancelled only before artwork approval or production begins.",
-      `Submit a cancellation request promptly through ${siteConfig.supportEmail} with the order number. A request is not complete until confirmed by FAB COUTURE.`,
+      `Submit a cancellation request promptly through ${siteConfig.supportEmail} with the order number. A request is not complete until confirmed by Fabpodd.`,
       "If cancellation is approved, prepaid amounts are returned to the original payment method. Once a customised order enters production, material, artwork or production costs already incurred may be non-refundable where permitted and disclosed."
     ]
   },
@@ -100,7 +100,7 @@ const pageContent: Record<
     body: [
       "Review all text, spelling, colours, size, print side, placement and artwork before adding a customised product to the cart. The saved order design is the production reference unless a separate proof is issued and approved.",
       "Artwork should be clear and suitable for printing. Low-resolution images, screen-to-print colour differences, fabric texture and normal placement tolerances are not manufacturing defects. We may contact you when artwork cannot be produced reliably.",
-      "You confirm that uploaded artwork does not violate copyright, trademark, privacy or other rights. FAB COUTURE may refuse content reasonably believed to be unlawful, infringing or unsafe.",
+      "You confirm that uploaded artwork does not violate copyright, trademark, privacy or other rights. Fabpodd may refuse content reasonably believed to be unlawful, infringing or unsafe.",
       `If the delivered product is damaged, defective or materially different from the saved design, notify ${siteConfig.supportEmail} within 48 hours with photographs. After verification, we may repair, remake, replace or refund the affected item as appropriate.`
     ]
   },
@@ -108,7 +108,7 @@ const pageContent: Record<
     title: "Payment Policy",
     description: "Payment authorisation, failures, refunds and invoice information.",
     body: [
-      "Available payment methods are displayed at checkout. Online payments are processed by the named payment provider; FAB COUTURE does not store complete card, UPI PIN or banking credentials.",
+      "Available payment methods are displayed at checkout. Online payments are processed by the named payment provider; Fabpodd does not store complete card, UPI PIN or banking credentials.",
       "An order is treated as paid only after successful provider verification. If your account is debited but the order remains unpaid, wait for provider reconciliation and contact support with the order reference and transaction reference.",
       "Duplicate or failed-payment credits are returned through the original payment method after verification. Refund timing depends on the bank or provider.",
       "An invoice is made available with the order after confirmation. Tax particulars depend on the seller's applicable registration and the information supplied at checkout."
@@ -131,7 +131,7 @@ export default function InfoPage() {
   if (location.pathname === "/contact") {
     return (
       <>
-        <Seo title="Contact" description="Contact FAB COUTURE for orders, customisation, corporate enquiries and support." path="/contact" />
+        <Seo title="Contact" description="Contact Fabpodd for orders, customisation, corporate enquiries and support." path="/contact" />
         <div className="container-shell py-8 pb-28">
           <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Contact" }]} />
           <section className="grid gap-8 rounded-[36px] bg-white p-8 shadow-card lg:grid-cols-[0.95fr_1.05fr]">
@@ -179,7 +179,7 @@ export default function InfoPage() {
   if (!content) {
     return (
       <>
-        <Seo title="Page Not Found" description="The requested route does not exist in the FAB COUTURE frontend." />
+        <Seo title="Page Not Found" description="The requested route does not exist in the Fabpodd frontend." />
         <div className="container-shell py-20 pb-28">
           <div className="rounded-[36px] bg-white p-8 shadow-card">
             <SectionIntro eyebrow="404" title="Page not found" description="This route is not defined in the current frontend scaffold." />

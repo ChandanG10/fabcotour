@@ -1,11 +1,11 @@
 import type { Coupon } from "../types/models";
 
 export const siteConfig = {
-  name: "FAB COUTURE",
+  name: "Fabpodd",
   shortDescription:
     "Custom apparel, gifting and premium essentials with a warm, modern shopping experience.",
   description:
-    "FAB COUTURE is a premium custom apparel and gifting storefront shaped by charcoal, cream and golden-yellow brand accents.",
+    "Fabpodd is a premium custom apparel and gifting storefront shaped by charcoal, cream and golden-yellow brand accents.",
   baseUrl: import.meta.env.VITE_SITE_URL?.trim() || "https://fabpodd.com",
   announcement: "Free shipping on orders above ₹999  •  Easy 30-day returns  •  Secure payments",
   whatsappNumber: import.meta.env.VITE_WHATSAPP_NUMBER?.trim() || "+91 90000 00000",

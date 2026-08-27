@@ -98,7 +98,7 @@ export default function HomePage() {
     <>
       <Seo
         title="Custom Apparel, Prints and Corporate Gifting"
-        description="Discover FAB COUTURE, a modern premium storefront for custom apparel, standout prints and thoughtful corporate gifts."
+        description="Discover Fabpodd, a modern premium storefront for custom apparel, standout prints and thoughtful corporate gifts."
         structuredData={[
           {
             "@context": "https://schema.org",
@@ -162,7 +162,10 @@ export default function HomePage() {
               <Link to="/customise" className="button-primary">
                 Start Customising
               </Link>
-              <Link to="/shop" className="button-secondary border-white/15 bg-white/8 text-white">
+              <Link
+                to="/shop"
+                className="inline-flex items-center justify-center rounded-full border border-white/20 bg-transparent px-6 py-3 text-sm font-semibold text-white transition duration-300 ease-luxe hover:-translate-y-0.5 hover:border-brand-cyan hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan"
+              >
                 Explore Products
               </Link>
             </div>

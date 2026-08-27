@@ -163,7 +163,7 @@ export function CorporatePage() {
             </div>
             <label className="md:col-span-2 flex items-center gap-3 rounded-[22px] bg-brand-grey px-4 py-4 text-sm">
               <input type="checkbox" {...form.register("consent")} />
-              <span>I consent to FAB COUTURE contacting me about this enquiry.</span>
+              <span>I consent to Fabpodd contacting me about this enquiry.</span>
             </label>
             {form.formState.isSubmitSuccessful ? <div className="md:col-span-2"><SuccessInline label="Professional success state: your enquiry has been recorded and can now move into mock API handling." /></div> : null}
             <div className="md:col-span-2">

@@ -65,7 +65,7 @@ function downloadInvoice(order: import("../types/models").Order) {
   ).join("");
   const documentHtml = `<!doctype html><html><head><meta charset="utf-8"><title>${order.invoiceNumber ?? order.orderNumber}</title>
     <style>body{font-family:Arial,sans-serif;max-width:760px;margin:40px auto;color:#111}h1{margin-bottom:4px}table{width:100%;border-collapse:collapse;margin:24px 0}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}.total{font-size:20px;font-weight:700}</style></head>
-    <body><h1>FAB COUTURE</h1><p>Invoice ${order.invoiceNumber ?? order.orderNumber}</p><p>Order ${order.orderNumber} · ${new Date(order.createdAt).toLocaleDateString("en-IN")}</p>
+    <body><h1>Fabpodd</h1><p>Invoice ${order.invoiceNumber ?? order.orderNumber}</p><p>Order ${order.orderNumber} · ${new Date(order.createdAt).toLocaleDateString("en-IN")}</p>
     <p>Deliver to: ${escapeInvoiceText(order.address.recipient)}, ${escapeInvoiceText(order.address.line1)}, ${escapeInvoiceText(order.address.city)}, ${escapeInvoiceText(order.address.state)} ${escapeInvoiceText(order.address.pinCode)}</p>
     <table><thead><tr><th>Product reference</th><th>Quantity</th><th>Amount</th></tr></thead><tbody>${lines}</tbody></table>
     <p>Subtotal: ${currencyFormatter.format(order.subtotal)}</p><p>Shipping: ${currencyFormatter.format(order.shipping)}</p><p>Discount: ${currencyFormatter.format(order.discount)}</p>
@@ -480,7 +480,7 @@ export function AuthPage() {
         <div className="grid gap-8 rounded-[36px] bg-white p-8 shadow-card lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[32px] bg-brand-black p-8 text-white">
             <div className="inline-flex rounded-[22px] bg-white px-4 py-3">
-              <BrandLogo className="h-12 w-[198px]" />
+              <BrandLogo className="h-16 w-[176px]" />
             </div>
             <h1 className="mt-6 font-heading text-4xl font-extrabold">Sign in to manage orders, wishlist and custom designs.</h1>
             <p className="mt-4 text-base leading-8 text-white/72">
@@ -681,7 +681,7 @@ export function TrackOrderPage() {
 
   return (
     <>
-      <Seo title="Track Order" description="Track a FAB COUTURE order using its order number and checkout email." path="/track-order" />
+      <Seo title="Track Order" description="Track a Fabpodd order using its order number and checkout email." path="/track-order" />
       <div className="container-shell py-8 pb-28">
         <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Track Order" }]} />
         <div className="rounded-[36px] bg-white p-8 shadow-card">

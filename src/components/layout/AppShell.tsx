@@ -126,15 +126,15 @@ export function AppShell() {
     <div className="min-h-screen overflow-x-hidden bg-brand-cream md:bg-brand-cream">
       <div className="announcement-bar sticky top-0 z-[60] bg-brand-black text-white">
         <div className="container-shell hidden h-full items-center justify-center gap-4 text-[11px] font-medium tracking-[0.12em] md:flex">
-          <TopBarItem icon={<Gift className="h-3.5 w-3.5 text-brand-yellow" />}>
+          <TopBarItem icon={<Gift className="h-3.5 w-3.5 text-brand-cyan" />}>
             Free shipping on orders above ₹999
           </TopBarItem>
-          <span className="text-brand-yellow">•</span>
-          <TopBarItem icon={<RotateCcw className="h-3.5 w-3.5 text-brand-yellow" />}>
+          <span className="text-brand-orange">•</span>
+          <TopBarItem icon={<RotateCcw className="h-3.5 w-3.5 text-brand-orange" />}>
             Easy 30-day returns
           </TopBarItem>
-          <span className="text-brand-yellow">•</span>
-          <TopBarItem icon={<ShieldCheck className="h-3.5 w-3.5 text-brand-yellow" />}>
+          <span className="text-brand-pink">•</span>
+          <TopBarItem icon={<ShieldCheck className="h-3.5 w-3.5 text-brand-pink" />}>
             Secure payments
           </TopBarItem>
         </div>
@@ -166,14 +166,14 @@ export function AppShell() {
             <Link
               to="/"
               className="col-start-2 row-start-1 z-10 justify-self-center lg:relative lg:left-auto lg:top-auto lg:col-start-auto lg:translate-x-0 lg:translate-y-0 lg:justify-self-start"
-              aria-label="FAB COUTURE home"
+              aria-label="FabPODD home"
             >
               <BrandLogo
                 className={cn(
                   "transition-all duration-300 ease-luxe",
                   compactHeader
-                    ? "h-[44px] w-[188px] sm:h-[42px] sm:w-[172px] lg:h-[50px] lg:w-[238px]"
-                    : "h-[44px] w-[188px] sm:h-[46px] sm:w-[186px] lg:h-[56px] lg:w-[264px]"
+                    ? "h-[46px] w-[126px] sm:h-[48px] sm:w-[132px] lg:h-[56px] lg:w-[160px]"
+                    : "h-[48px] w-[132px] sm:h-[50px] sm:w-[138px] lg:h-[62px] lg:w-[178px]"
                 )}
               />
             </Link>
@@ -186,7 +186,7 @@ export function AppShell() {
                   className={({ isActive }) =>
                     cn(
                       "relative py-2 text-[1rem] font-semibold text-brand-charcoal/78 transition duration-300 ease-luxe hover:text-brand-black",
-                      "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:origin-left after:scale-x-0 after:bg-brand-yellow after:transition-transform after:duration-300 after:ease-luxe hover:after:scale-x-100",
+                      "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:origin-left after:scale-x-0 after:bg-brand-pink after:transition-transform after:duration-300 after:ease-luxe hover:after:scale-x-100",
                       isActive && "text-brand-black after:scale-x-100"
                     )
                   }
@@ -310,10 +310,10 @@ export function AppShell() {
         <div className="container-shell grid gap-10 py-16 lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr]">
           <div>
             <div className="inline-flex rounded-[30px] bg-white px-5 py-4 shadow-soft">
-              <BrandLogo className="h-14 w-[232px]" />
+              <BrandLogo className="h-[72px] w-[196px]" />
             </div>
             <p className="mt-5 max-w-sm text-sm leading-7 text-white/72">
-              Print. Custom. You. FAB COUTURE builds modern apparel, standout gifting and
+              Print. Custom. You. Fabpodd builds modern apparel, standout gifting and
               customisation flows that feel premium from first click to delivery.
             </p>
             <div className="mt-6 flex items-center gap-3">
@@ -341,7 +341,7 @@ export function AppShell() {
 
         <div className="border-t border-white/10">
           <div className="container-shell flex flex-col gap-4 py-6 text-sm text-white/55 md:flex-row md:items-center md:justify-between">
-            <p>© 2026 FAB COUTURE. All rights reserved.</p>
+            <p>© 2026 Fabpodd. All rights reserved.</p>
             <div className="flex flex-wrap gap-4">
               <button type="button" onClick={() => setCookieChoice(undefined)} className="hover:text-white">Cookie preferences</button>
               <span>Secure checkout</span>

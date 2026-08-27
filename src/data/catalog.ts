@@ -259,7 +259,7 @@ export const testimonials = [
   {
     name: "The Match Club",
     quote:
-      "FAB COUTURE helped us build a team drop that looked polished, arrived on time and felt far above the usual event merchandise."
+      "Fabpodd helped us build a team drop that looked polished, arrived on time and felt far above the usual event merchandise."
   },
   {
     name: "Juniper Studio",
@@ -344,7 +344,7 @@ export const mockOrders: Order[] = [
     trackingSteps: [
       "Order placed on 12 Aug 2026",
       "Artwork review completed",
-      "Packed at FAB COUTURE studio",
+      "Packed at Fabpodd studio",
       "Handed to logistics partner"
     ]
   }

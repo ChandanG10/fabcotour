@@ -1,5 +1,5 @@
 import { Heart, Minus, Plus, Shield, ShoppingBag, Truck } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AssetImage, defaultProductAssetPath } from "../components/common/AssetImage";
 import { Seo } from "../components/common/Seo";
@@ -24,6 +24,10 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [pinCode, setPinCode] = useState("");
   const [pinMessage, setPinMessage] = useState("");
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [slug]);
 
   const { data, loading, error } = useAsyncData(async () => {
     if (!slug) {
@@ -108,7 +112,7 @@ export default function ProductPage() {
     name: product.name,
     description: product.description,
     image: product.images,
-    brand: { "@type": "Brand", name: "FAB COUTURE" },
+    brand: { "@type": "Brand", name: "Fabpodd" },
     aggregateRating: {
       "@type": "AggregateRating",
       ratingValue: product.rating,
@@ -131,7 +135,7 @@ export default function ProductPage() {
         image={product.images[0]}
         structuredData={structuredData}
       />
-      <div className="container-shell py-8 pb-28">
+      <div className="container-shell py-6 pb-28 sm:py-8">
         <Breadcrumbs
           items={[
             { label: "Home", to: "/" },
@@ -141,11 +145,11 @@ export default function ProductPage() {
           ]}
         />
 
-        <section className="grid gap-8 xl:grid-cols-[minmax(0,1.08fr)_minmax(420px,0.92fr)]">
-          <div className="space-y-5 xl:sticky xl:top-28 xl:self-start">
-            <div className="rounded-[36px] border border-black/6 bg-[radial-gradient(circle_at_top_left,_rgba(255,199,0,0.12),_transparent_26%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(248,244,236,0.92))] p-4 shadow-card sm:p-5">
+        <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,0.96fr)_minmax(520px,1.04fr)] xl:gap-8">
+          <div className="space-y-5 xl:sticky xl:top-32 xl:self-start">
+            <div className="rounded-[36px] border border-black/6 bg-[radial-gradient(circle_at_top_left,_rgba(8,185,212,0.12),_transparent_26%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(242,247,250,0.92))] p-4 shadow-card sm:p-5">
               <div className="grid gap-4 md:grid-cols-[90px_minmax(0,1fr)] md:items-start">
-                <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 md:mx-0 md:max-h-[720px] md:flex-col md:overflow-y-auto md:overflow-x-hidden md:px-0">
+                <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 md:mx-0 md:max-h-[640px] md:flex-col md:overflow-y-auto md:overflow-x-hidden md:px-0">
                   {galleryAssets.map((image, index) => (
                     <button
                       key={image.id}
@@ -173,31 +177,30 @@ export default function ProductPage() {
                     alt={`${product.name} detailed product view`}
                     expectedPath={defaultProductAssetPath(product.slug, activeImage)}
                     missingLabel="Product image is missing"
-                    imageClassName="h-[420px] w-full object-contain object-center transition duration-300 sm:h-[560px] xl:h-[720px]"
-                    fallbackClassName="h-[420px] w-full sm:h-[560px] xl:h-[720px]"
+                    imageClassName="h-[420px] w-full object-contain object-center transition duration-300 sm:h-[540px] xl:h-[640px]"
+                    fallbackClassName="h-[420px] w-full sm:h-[540px] xl:h-[640px]"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-6 xl:sticky xl:top-28 xl:self-start">
-            <div className="rounded-[36px] border border-black/6 bg-white p-6 shadow-card sm:p-7">
+          <div className="space-y-5">
+            <div className="rounded-[36px] border border-black/6 bg-white p-5 shadow-card sm:p-6">
               <div className="flex items-start justify-between gap-4">
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-black/45">{product.subcategory}</p>
-                  <h1 className="max-w-[14ch] font-heading text-4xl font-extrabold leading-[0.95] sm:text-5xl">
+                <div className="min-w-0 flex-1">
+                  <h1 className="font-heading text-3xl font-extrabold leading-[1.02] tracking-[-0.03em] sm:text-4xl xl:text-[2.75rem]">
                     {product.name}
                   </h1>
                 </div>
                 {product.badge ? (
-                  <span className="rounded-full bg-brand-yellow px-5 py-2 text-sm font-semibold text-brand-black">
+                  <span className="shrink-0 rounded-full bg-brand-orange px-4 py-2 text-sm font-semibold text-brand-navy">
                     {product.badge}
                   </span>
                 ) : null}
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-brand-black/62">
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-brand-black/62">
                 <span>{product.rating.toFixed(1)} rating</span>
                 <span>•</span>
                 <span>{product.reviewCount} reviews</span>
@@ -205,30 +208,30 @@ export default function ProductPage() {
                 <span>{selectedVariant?.stock ?? product.variants[0]?.stock ?? 0} in stock</span>
               </div>
 
-              <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-2">
-                <span className="text-4xl font-black tracking-tight">{currencyFormatter.format(product.price)}</span>
-                <span className="pb-1 text-xl text-brand-black/35 line-through">{currencyFormatter.format(product.originalPrice)}</span>
+              <div className="mt-5 flex flex-wrap items-end gap-x-3 gap-y-2">
+                <span className="text-3xl font-black tracking-tight sm:text-4xl">{currencyFormatter.format(product.price)}</span>
+                <span className="pb-1 text-lg text-brand-black/35 line-through">{currencyFormatter.format(product.originalPrice)}</span>
                 <span className="rounded-full bg-brand-success/10 px-3 py-1.5 text-sm font-semibold text-brand-success">
                   {calculateDiscount(product.price, product.originalPrice)}% off
                 </span>
               </div>
 
-              <p className="mt-3 text-base leading-8 text-brand-black/70">{summaryCopy}</p>
+              <p className="mt-3 max-w-[68ch] text-base leading-7 text-brand-black/70">{summaryCopy}</p>
               <p className="mt-2 text-sm text-brand-black/55">Inclusive of taxes. Delivery calculated at checkout.</p>
 
               {metaHighlights.length ? (
-                <div className="mt-6 flex flex-wrap gap-3">
+                <div className="mt-5 flex flex-wrap gap-2">
                   {metaHighlights.map((item) => (
-                    <span key={item} className="rounded-full border border-black/8 bg-brand-offwhite px-4 py-2 text-sm font-medium text-brand-black/72">
+                    <span key={item} className="rounded-full border border-black/8 bg-brand-offwhite px-3 py-2 text-sm font-medium text-brand-black/72">
                       {item}
                     </span>
                   ))}
                 </div>
               ) : null}
 
-              <div className="mt-8 border-t border-black/8 pt-7">
+              <div className="mt-6 border-t border-black/8 pt-5">
                 <p className="text-sm font-semibold">Colours</p>
-                <div className="mt-3 flex flex-wrap gap-3">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {product.colorOptions.map((color) => (
                     <button
                       key={color}
@@ -237,7 +240,7 @@ export default function ProductPage() {
                         setSelectedColor(color);
                         setActiveImage(0);
                       }}
-                      className={`rounded-full border px-4 py-3 text-sm font-medium transition ${selectedColor === color ? "border-brand-black bg-brand-black text-white" : "border-black/10 hover:border-black/25"}`}
+                      className={`min-h-11 rounded-full border px-4 py-2.5 text-sm font-medium transition ${selectedColor === color ? "border-brand-black bg-brand-black text-white" : "border-black/10 hover:border-black/25"}`}
                     >
                       {color}
                       <span
@@ -251,9 +254,9 @@ export default function ProductPage() {
                 </div>
               </div>
 
-              <div className="mt-7">
+              <div className="mt-5">
                 <p className="text-sm font-semibold">Size</p>
-                <div className="mt-3 flex flex-wrap gap-3">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {product.sizeOptions.map((size) => (
                     <button
                       key={size}
@@ -262,7 +265,7 @@ export default function ProductPage() {
                         setSelectedSize(size);
                         setActiveImage(0);
                       }}
-                      className={`min-w-[3.5rem] rounded-full border px-4 py-3 text-sm font-semibold transition ${selectedSize === size ? "border-brand-black bg-brand-black text-white" : "border-black/10 hover:border-black/25"}`}
+                      className={`min-h-11 min-w-[3.5rem] rounded-full border px-4 py-2.5 text-sm font-semibold transition ${selectedSize === size ? "border-brand-black bg-brand-black text-white" : "border-black/10 hover:border-black/25"}`}
                     >
                       {size}
                     </button>
@@ -270,15 +273,15 @@ export default function ProductPage() {
                 </div>
               </div>
 
-              <div className="mt-7 grid gap-5 lg:grid-cols-[auto_minmax(0,1fr)]">
+              <div className="mt-6 grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)]">
                 <div>
                   <p className="text-sm font-semibold">Quantity</p>
                   <div className="mt-3 inline-flex items-center gap-4 rounded-full border border-black/10 px-4 py-3">
-                    <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))}>
+                    <button type="button" aria-label="Decrease quantity" onClick={() => setQuantity((value) => Math.max(1, value - 1))}>
                       <Minus className="h-4 w-4" />
                     </button>
                     <span className="min-w-8 text-center font-semibold">{quantity}</span>
-                    <button type="button" onClick={() => setQuantity((value) => value + 1)}>
+                    <button type="button" aria-label="Increase quantity" onClick={() => setQuantity((value) => value + 1)}>
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
@@ -307,7 +310,7 @@ export default function ProductPage() {
                 </div>
               </div>
 
-              <div className="mt-8 grid gap-3 md:grid-cols-2">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   className="button-primary"
@@ -341,7 +344,7 @@ export default function ProductPage() {
                   Buy Now
                 </button>
                 <button type="button" className="button-secondary" onClick={() => toggleWishlist(product.id)}>
-                  <Heart className={`mr-2 h-4 w-4 ${wished ? "fill-brand-yellow text-brand-yellow" : ""}`} />
+                  <Heart className={`mr-2 h-4 w-4 ${wished ? "fill-brand-pink text-brand-pink" : ""}`} />
                   Add to Wishlist
                 </button>
                 <Link to={`/customise?product=${product.id}`} className="button-secondary">
@@ -349,7 +352,7 @@ export default function ProductPage() {
                 </Link>
               </div>
 
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 <MiniTrust title="Secure checkout" copy="Protected payment flow." />
                 <MiniTrust title="Quick dispatch" copy="3-5 working days." />
                 <MiniTrust title="Custom ready" copy="Branding support available." />
@@ -363,17 +366,66 @@ export default function ProductPage() {
           </div>
         </section>
 
-        <section className="mt-16 grid gap-8 lg:grid-cols-3">
-          <DetailsCard
-            className="lg:col-span-2"
-            title="Product story"
-            items={[product.description, ...product.specifications]}
-          />
-          <DetailsCard title="Material and fit" items={[product.material, `Fit: ${product.fit}`, `Fabric: ${product.fabric}`]} />
-          <DetailsCard title="Printing compatibility" items={product.printingCompatibility} />
-          <DetailsCard title="Care instructions" items={product.care} />
-          <DetailsCard title="Return summary" items={[product.returns]} />
-          <DetailsCard title="Offers" items={product.offers} />
+        <section className="mt-16" aria-labelledby="product-details-title">
+          <h2 id="product-details-title" className="section-title">
+            Product details
+          </h2>
+
+          <div className="mt-6 overflow-hidden rounded-[32px] bg-white shadow-card">
+            <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+              <article className="border-b border-black/8 p-6 sm:p-8 lg:border-b-0 lg:border-r">
+                <h3 className="font-heading text-2xl font-bold text-brand-black">Product story</h3>
+                <p className="mt-4 max-w-[72ch] text-base leading-8 text-brand-black/68">
+                  {product.description}
+                </p>
+                <InfoList items={product.specifications} columns />
+              </article>
+
+              <aside className="bg-brand-soft/70 p-6 sm:p-8">
+                <section>
+                  <h3 className="font-heading text-2xl font-bold text-brand-black">Material and fit</h3>
+                  <dl className="mt-5 space-y-4">
+                    <InfoDefinition label="Material" value={product.material} />
+                    <InfoDefinition label="Fit" value={product.fit} />
+                    <InfoDefinition label="Fabric" value={product.fabric} />
+                  </dl>
+                </section>
+
+                <section className="mt-8 border-t border-black/10 pt-7">
+                  <h3 className="font-heading text-xl font-bold text-brand-black">Printing compatibility</h3>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {product.printingCompatibility.map((method) => (
+                      <span
+                        key={method}
+                        className="rounded-full border border-brand-cyan/30 bg-white px-4 py-2 text-sm font-semibold text-brand-black"
+                      >
+                        {method}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              </aside>
+            </div>
+
+            <div className="grid border-t border-black/8 lg:grid-cols-2">
+              <article className="border-b border-black/8 p-6 sm:p-8 lg:border-b-0 lg:border-r">
+                <h3 className="font-heading text-2xl font-bold text-brand-black">Care instructions</h3>
+                <InfoList items={product.care} />
+              </article>
+
+              <article className="p-6 sm:p-8">
+                <h3 className="font-heading text-2xl font-bold text-brand-black">Return summary</h3>
+                <p className="mt-4 text-base leading-8 text-brand-black/68">{product.returns}</p>
+
+                {product.offers.length ? (
+                  <div className="mt-7 border-t border-black/8 pt-6">
+                    <h4 className="font-heading text-xl font-bold text-brand-black">Offers</h4>
+                    <InfoList items={product.offers} compact />
+                  </div>
+                ) : null}
+              </article>
+            </div>
+          </div>
         </section>
 
         {togetherProducts.length ? (
@@ -442,15 +494,24 @@ function MiniTrust({ title, copy }: { title: string; copy: string }) {
   );
 }
 
-function DetailsCard({ title, items, className = "" }: { title: string; items: string[]; className?: string }) {
+function InfoDefinition({ label, value }: { label: string; value: string }) {
   return (
-    <div className={`rounded-[28px] bg-white p-6 shadow-card ${className}`}>
-      <h3 className="font-heading text-2xl font-bold">{title}</h3>
-      <ul className="mt-4 space-y-3 text-sm leading-7 text-brand-black/65">
-        {items.map((item) => (
-          <li key={item}>• {item}</li>
-        ))}
-      </ul>
+    <div className="grid gap-1 border-b border-black/8 pb-4 last:border-b-0 last:pb-0">
+      <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-black/48">{label}</dt>
+      <dd className="text-base font-semibold leading-7 text-brand-black/78">{value}</dd>
     </div>
+  );
+}
+
+function InfoList({ items, columns = false, compact = false }: { items: string[]; columns?: boolean; compact?: boolean }) {
+  return (
+    <ul className={`mt-5 grid gap-x-8 ${compact ? "gap-y-2" : "gap-y-3"} ${columns ? "sm:grid-cols-2" : ""}`}>
+      {items.filter(Boolean).map((item, index) => (
+        <li key={`${item}-${index}`} className="flex gap-3 text-sm leading-7 text-brand-black/65">
+          <span aria-hidden="true" className="mt-[0.65rem] h-1.5 w-1.5 shrink-0 rounded-full bg-brand-cyan" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

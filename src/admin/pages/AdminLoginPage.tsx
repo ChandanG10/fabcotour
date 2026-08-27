@@ -36,7 +36,9 @@ export default function AdminLoginPage() {
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl overflow-hidden rounded-[32px] border border-white/10 bg-[#111111] shadow-2xl lg:grid-cols-[0.92fr_1.08fr]">
         <div className="flex flex-col justify-between bg-[radial-gradient(circle_at_top_left,_rgba(255,201,40,0.22),_transparent_40%),linear-gradient(180deg,_rgba(255,201,40,0.14),_rgba(17,17,17,1)_55%)] p-8 sm:p-10">
           <div>
-            <BrandLogo className="h-[56px] w-[240px]" />
+            <div className="inline-flex rounded-2xl bg-white px-4 py-3 shadow-lg shadow-black/15">
+              <BrandLogo className="h-16 w-[176px]" />
+            </div>
             <p className="mt-8 text-xs font-semibold uppercase tracking-[0.32em] text-[#ffc928]">
               Secure Admin Access
             </p>
@@ -65,7 +67,7 @@ export default function AdminLoginPage() {
         <div className="flex items-center justify-center bg-[#f7f2e8] p-6 text-brand-black sm:p-10">
           <form onSubmit={handleSubmit} className="w-full max-w-md rounded-[30px] border border-black/8 bg-white p-6 shadow-xl sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-black/45">
-              FAB COUTURE
+              Fabpodd
             </p>
             <h2 className="mt-3 font-heading text-3xl font-extrabold tracking-tight text-brand-black">
               Admin Login

@@ -1,4 +1,4 @@
-# FAB COUTURE Admin Panel Setup
+# Fabpodd Admin Panel Setup
 
 ## Environment
 

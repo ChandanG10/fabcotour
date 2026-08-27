@@ -1,4 +1,4 @@
-# FAB COUTURE frontend (Apache/cPanel)
+# Fabpodd frontend (Apache/cPanel)
 # CORS is intentionally not configured here. The API owns the single
 # credentialed CORS policy and the frontend calls it directly.
 
