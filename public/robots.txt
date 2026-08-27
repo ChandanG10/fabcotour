@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://fabcouture.vertexsoftware.in/sitemap.xml
+Sitemap: https://fabpodd.com/sitemap.xml

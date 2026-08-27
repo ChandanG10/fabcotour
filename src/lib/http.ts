@@ -26,7 +26,10 @@ function resolveApiBaseUrl() {
     return configuredApiBaseUrl;
   }
 
-  if (typeof window !== "undefined" && window.location.hostname === "fabcouture.vertexsoftware.in") {
+  if (
+    typeof window !== "undefined" &&
+    ["fabpodd.com", "www.fabpodd.com"].includes(window.location.hostname)
+  ) {
     return fabCoutureProductionApiBaseUrl;
   }
 

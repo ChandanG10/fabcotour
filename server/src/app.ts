@@ -4,6 +4,7 @@ import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { pool } from "./db/pool.js";
+import { env, isProduction } from "./config/env.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFoundHandler } from "./middleware/not-found.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
@@ -19,10 +20,13 @@ import { reviewsRouter } from "./modules/reviews/reviews.routes.js";
 import { storeRouter } from "./modules/store/store.routes.js";
 import { uploadsRouter } from "./modules/uploads/uploads.routes.js";
 
-export const productionOrigins = [
-  "https://fabcouture.vertexsoftware.in",
-  "https://www.fabcouture.vertexsoftware.in"
-];
+export const productionOrigins = Array.from(
+  new Set(
+    ["https://fabpodd.com", "https://www.fabpodd.com", env.APP_ORIGIN]
+      .filter((origin): origin is string => Boolean(origin))
+      .map((origin) => origin.replace(/\/+$/, ""))
+  )
+);
 
 export function isAllowedOrigin(origin?: string): boolean {
   if (!origin) {
@@ -36,8 +40,9 @@ export function isAllowedOrigin(origin?: string): boolean {
   try {
     const url = new URL(origin);
     return (
-      url.protocol === "http:" &&
-      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+      !isProduction &&
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      ["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname)
     );
   } catch {
     return false;

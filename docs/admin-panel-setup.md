@@ -9,8 +9,10 @@ Required variables:
 ```env
 VITE_API_BASE_URL=http://localhost:8787/api
 VITE_PRODUCTION_API_BASE_URL=https://fabcotour.vercel.app/api
+VITE_SITE_URL=https://fabpodd.com
 SERVER_PORT=8787
 NODE_ENV=development
+APP_ORIGIN=https://fabpodd.com
 DB_HOST=
 DB_PORT=3306
 DB_USER=
