@@ -119,19 +119,25 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       </div>
       <div className="flex flex-1 flex-col p-3 transition duration-500 ease-luxe group-hover:-translate-y-1 md:p-5">
-        <div className="flex min-h-10 items-start justify-between gap-4 md:min-h-[9rem]">
-          <div className="min-w-0">
-            <p className="hidden text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-muted md:block">FabCoutur</p>
-            <Link to={`/product/${product.slug}`} className="line-clamp-2 text-[15px] font-semibold leading-5 text-brand-black md:mt-2 md:line-clamp-3 md:font-heading md:text-lg md:font-bold md:leading-6">
-              {product.name}
-            </Link>
-            <p className="mt-1 hidden text-sm leading-5 text-brand-muted md:line-clamp-2">{product.material}</p>
+        <div className="min-h-10 md:min-h-[8.5rem]">
+          <div className="hidden min-h-7 items-center justify-between gap-3 md:flex">
+            <p className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-muted">FabCoutur</p>
+            {product.customisable ? (
+              <span className="shrink-0 rounded-full bg-brand-soft px-3 py-1 text-[11px] font-semibold text-brand-charcoal">
+                Customisable
+              </span>
+            ) : null}
           </div>
-          {product.customisable ? (
-            <span className="hidden shrink-0 rounded-full bg-brand-soft px-3 py-1 text-[11px] font-semibold text-brand-charcoal md:inline-flex">
-              Customisable
-            </span>
-          ) : null}
+          <Link
+            to={`/product/${product.slug}`}
+            title={product.name}
+            className="line-clamp-2 text-[15px] font-semibold leading-5 text-brand-black md:mt-2 md:block md:min-h-[4.5rem] md:line-clamp-3 md:font-heading md:text-lg md:font-bold md:leading-6"
+          >
+            {product.name}
+          </Link>
+          <p className="mt-1 hidden min-h-5 truncate text-sm leading-5 text-brand-muted md:block" title={product.material}>
+            {product.material}
+          </p>
         </div>
         <div className="mt-2.5 hidden items-center gap-2 text-sm text-brand-muted md:flex">
           <Star className="h-4 w-4 fill-brand-orange text-brand-orange" />

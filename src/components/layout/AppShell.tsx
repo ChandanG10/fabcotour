@@ -132,9 +132,10 @@ export function AppShell() {
     };
   }, []);
 
-  const menuCategories = categories
-    .filter((category) => !category.parentId)
-    .sort((left, right) => left.displayOrder - right.displayOrder);
+  const primaryCategorySlugs = ["men", "women", "kids"];
+  const menuCategories = primaryCategorySlugs
+    .map((slug) => categories.find((category) => !category.parentId && category.slug === slug))
+    .filter((category): category is StoreCategory => Boolean(category));
   const childrenFor = (parentId: string) => categories
     .filter((category) => category.parentId === parentId)
     .sort((left, right) => left.displayOrder - right.displayOrder);

@@ -413,6 +413,8 @@ img {
 .cropper-stage canvas { display: block; width: 100%; height: 100%; }
 .cropper-stage::after { position: absolute; inset: 0; border: 1px solid rgb(255 255 255 / .85); box-shadow: inset 0 0 0 999px rgb(7 22 61 / .08); content: ""; pointer-events: none; }
 .cropper-stage>span { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); border-radius: 999px; background: rgb(7 22 61 / .8); padding: 6px 10px; color: white; font-size: 10px; font-weight: 800; pointer-events: none; }
+.cropper-status { position: absolute; z-index: 1; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; color: rgb(7 22 61 / .68); font-size: 13px; font-weight: 800; text-align: center; }
+.cropper-status.error { color: #a51d2d; }
 .cropper-zoom { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 12px; padding: 0 20px; color: var(--brand-navy); font-size: 12px; font-weight: 800; }
 .cropper-zoom input { accent-color: var(--brand-cyan-dark); }
 .cropper-tools { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; padding: 14px 20px; }

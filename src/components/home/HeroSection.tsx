@@ -59,7 +59,7 @@ export function HeroSection({
   }, [slides.length]);
 
   return (
-    <section className="hero relative overflow-hidden bg-[#FBF6ED]">
+    <section className="hero relative overflow-hidden rounded-[22px] bg-[#FBF6ED] md:rounded-[28px]">
       {hasHeroImage ? (
         <div className="absolute inset-0 hidden lg:block">
           <AssetImage
@@ -255,7 +255,7 @@ export function HeroSection({
             : "grid grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] items-stretch gap-0 lg:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)]"
         }
       >
-        <div className="relative z-10 col-span-1 flex flex-col justify-center px-0 py-5 pr-3 sm:py-7 sm:pr-5 lg:w-[42%] lg:pr-12">
+        <div className="relative z-10 col-span-1 flex flex-col justify-center px-5 py-7 sm:px-7 sm:py-8 lg:w-[42%] lg:py-10 lg:pl-12 lg:pr-10 xl:py-12 xl:pl-14 xl:pr-12">
           {hasHeroImage ? (
             <>
               <div className="pointer-events-none absolute -left-12 bottom-12 hidden lg:block">
