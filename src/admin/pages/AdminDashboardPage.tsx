@@ -1,7 +1,9 @@
 import {
   AlertTriangle,
   Archive,
+  ArrowDown,
   ArrowLeftRight,
+  ArrowUp,
   BarChart3,
   CreditCard,
   FolderTree,
@@ -12,6 +14,7 @@ import {
   LogOut,
   MessageSquare,
   Package,
+  Palette,
   Pencil,
   Plus,
   Search,
@@ -30,10 +33,12 @@ import { adminService } from "../../services/api";
 import { ApiError } from "../../lib/http";
 import { useAdminAuth } from "../AdminAuth";
 import type { HomepagePayload, StoreCategory, StoreProduct } from "../../lib/storefront";
+import { CustomisationAdminPanel } from "../components/CustomisationAdminPanel";
 
 type DashboardSection =
   | "overview"
   | "products"
+  | "customisation"
   | "categories"
   | "homepage"
   | "orders"
@@ -126,6 +131,8 @@ type ConfirmState = {
   description: string;
   actionLabel?: string;
   onConfirm: () => Promise<void> | void;
+  moveTargets?: StoreCategory[];
+  onMove?: (targetId: string) => Promise<void> | void;
 } | null;
 
 const imageUploadAccept = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
@@ -138,52 +145,6 @@ function isSupportedImageFile(file: File) {
   return supportedExtension && (genericMimeType || supportedImageMimeTypes.has(file.type.toLowerCase()));
 }
 
-const basicCategoryBlueprint: Array<{
-  audience: "men" | "women" | "kids";
-  parent: { name: string; slug: string; description: string };
-  children: Array<{ name: string; slug: string; description: string }>;
-}> = [
-  {
-    audience: "men",
-    parent: {
-      name: "Men",
-      slug: "men",
-      description: "Core men’s category for tees, polos, hoodies and related apparel."
-    },
-    children: [
-      { name: "T-Shirts", slug: "men-t-shirts", description: "Men’s printed and solid t-shirts." },
-      { name: "Shirts", slug: "men-shirts", description: "Men’s casual and formal shirts." },
-      { name: "Hoodies", slug: "men-hoodies", description: "Men’s hoodies and sweatshirts." }
-    ]
-  },
-  {
-    audience: "women",
-    parent: {
-      name: "Women",
-      slug: "women",
-      description: "Core women’s category for tops, t-shirts, hoodies and lifestyle apparel."
-    },
-    children: [
-      { name: "T-Shirts", slug: "women-t-shirts", description: "Women’s printed and oversized t-shirts." },
-      { name: "Tops", slug: "women-tops", description: "Women’s casual tops and essentials." },
-      { name: "Hoodies", slug: "women-hoodies", description: "Women’s hoodies and sweatshirts." }
-    ]
-  },
-  {
-    audience: "kids",
-    parent: {
-      name: "Kids",
-      slug: "kids",
-      description: "Core kids category for printed t-shirts, sets and playful essentials."
-    },
-    children: [
-      { name: "T-Shirts", slug: "kids-t-shirts", description: "Kids printed and graphic t-shirts." },
-      { name: "Co-ord Sets", slug: "kids-co-ord-sets", description: "Kids matching co-ord sets." },
-      { name: "Hoodies", slug: "kids-hoodies", description: "Kids hoodies and sweatshirts." }
-    ]
-  }
-];
-
 const sections: Array<{
   id: DashboardSection;
   label: string;
@@ -191,6 +152,7 @@ const sections: Array<{
 }> = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
   { id: "products", label: "Products", icon: Package },
+  { id: "customisation", label: "Customisation", icon: Palette },
   { id: "categories", label: "Categories", icon: FolderTree },
   { id: "homepage", label: "Homepage", icon: Home },
   { id: "orders", label: "Orders", icon: ShoppingBag },
@@ -391,6 +353,7 @@ export default function AdminDashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
+  const [confirmMoveTarget, setConfirmMoveTarget] = useState("");
 
   const [dashboardData, setDashboardData] = useState<Awaited<ReturnType<typeof adminService.dashboard>> | null>(null);
   const [productsData, setProductsData] = useState<Awaited<ReturnType<typeof adminService.listProducts>> | null>(null);
@@ -405,6 +368,8 @@ export default function AdminDashboardPage() {
   const [contactEnquiries, setContactEnquiries] = useState<Array<Record<string, unknown>>>([]);
 
   const [productSearch, setProductSearch] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("");
+  const [productSubcategoryFilter, setProductSubcategoryFilter] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
   const [productForm, setProductForm] = useState<ProductFormState>(defaultProductForm());
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(defaultCategoryForm());
@@ -419,7 +384,7 @@ export default function AdminDashboardPage() {
   const availableCategoryOptions = useMemo(
     () =>
       parentCategoryOptions.filter((category) =>
-        ["men", "women", "kids", "unisex", "business"].includes(category.audience)
+        category.isVisible && ["men", "women", "kids", "unisex", "business"].includes(category.audience)
       ),
     [parentCategoryOptions]
   );
@@ -428,9 +393,10 @@ export default function AdminDashboardPage() {
       categories.filter(
         (category) =>
           category.parentId &&
-          category.parentId === productForm.categoryId
+          category.parentId === productForm.categoryId &&
+          (category.isVisible || category.id === productForm.subcategoryId)
       ),
-    [categories, productForm.categoryId]
+    [categories, productForm.categoryId, productForm.subcategoryId]
   );
   const selectedParentCategory = useMemo(
     () => availableCategoryOptions.find((category) => category.id === productForm.categoryId) ?? null,
@@ -439,6 +405,10 @@ export default function AdminDashboardPage() {
   const selectedSubcategory = useMemo(
     () => subcategoryOptions.find((category) => category.id === productForm.subcategoryId) ?? null,
     [subcategoryOptions, productForm.subcategoryId]
+  );
+  const productFilterSubcategories = useMemo(
+    () => categories.filter((category) => category.parentId === productCategoryFilter),
+    [categories, productCategoryFilter]
   );
   const storefrontRoute = selectedParentCategory ? `/shop/${selectedParentCategory.slug}` : "Select a category to assign the product";
   const storefrontPlacement = selectedParentCategory
@@ -522,7 +492,7 @@ export default function AdminDashboardPage() {
 
   const loadProducts = async () => {
     try {
-      const data = await adminService.listProducts(1, productSearch);
+      const data = await adminService.listProducts(1, productSearch, productCategoryFilter, productSubcategoryFilter);
       setProductsData(data);
     } catch (error) {
       if (!handleAuthFailure(error)) {
@@ -703,6 +673,18 @@ export default function AdminDashboardPage() {
   };
 
   const submitProduct = async () => {
+    if (!productForm.categoryId) {
+      toast.error("Choose a main category.");
+      return;
+    }
+    if (["men", "women", "kids"].includes(selectedParentCategory?.slug ?? "") && !productForm.subcategoryId) {
+      toast.error("Choose a subcategory for this product.");
+      return;
+    }
+    if (productForm.subcategoryId && !selectedSubcategory) {
+      toast.error("The selected subcategory does not belong to this main category.");
+      return;
+    }
     const payload = {
       categoryId: productForm.categoryId,
       subcategoryId: productForm.subcategoryId || null,
@@ -789,63 +771,18 @@ export default function AdminDashboardPage() {
 
     await runAction("save-category", async () => {
       if (categoryForm.id) {
-        await adminService.updateCategory(categoryForm.id, payload);
+        if (categoryForm.parentId) await adminService.updateSubcategory(categoryForm.id, payload);
+        else await adminService.updateCategory(categoryForm.id, payload);
         toast.success("Category updated.");
+      } else if (categoryForm.parentId) {
+        await adminService.createSubcategory(categoryForm.parentId, payload);
+        toast.success("Subcategory created.");
       } else {
         await adminService.createCategory(payload);
         toast.success("Category created.");
       }
 
       setCategoryForm(defaultCategoryForm());
-      await loadCategories();
-    });
-  };
-
-  const setupBasicCategories = async () => {
-    await runAction("seed-basic-categories", async () => {
-      const existingBySlug = new Map(categories.map((category) => [category.slug, category]));
-
-      for (const blueprint of basicCategoryBlueprint) {
-        let parent = existingBySlug.get(blueprint.parent.slug);
-
-        if (!parent) {
-          const createdParent = await adminService.createCategory({
-            parentId: null,
-            name: blueprint.parent.name,
-            slug: blueprint.parent.slug,
-            description: blueprint.parent.description,
-            audience: blueprint.audience,
-            imageUrl: null,
-            imagePublicId: null,
-            isVisible: true,
-            displayOrder: 0
-          });
-          parent = createdParent.item as StoreCategory;
-          existingBySlug.set(parent.slug, parent);
-        }
-
-        for (const child of blueprint.children) {
-          if (existingBySlug.has(child.slug)) {
-            continue;
-          }
-
-          const createdChild = await adminService.createCategory({
-            parentId: parent.id,
-            name: child.name,
-            slug: child.slug,
-            description: child.description,
-            audience: blueprint.audience,
-            imageUrl: null,
-            imagePublicId: null,
-            isVisible: true,
-            displayOrder: 0
-          });
-          const childItem = createdChild.item as StoreCategory;
-          existingBySlug.set(childItem.slug, childItem);
-        }
-      }
-
-      toast.success("Basic Men, Women and Kids categories created.");
       await loadCategories();
     });
   };
@@ -889,15 +826,14 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    const fallbackSlug = `${selectedParentCategory.slug}-${quickSubcategoryForm.name
+    const fallbackSlug = quickSubcategoryForm.name
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")}`;
+      .replace(/^-+|-+$/g, "");
 
     await runAction("create-subcategory", async () => {
-      const response = await adminService.createCategory({
-        parentId: selectedParentCategory.id,
+      const response = await adminService.createSubcategory(selectedParentCategory.id, {
         name: quickSubcategoryForm.name.trim(),
         slug: quickSubcategoryForm.slug.trim() || fallbackSlug,
         description: `${selectedParentCategory.name} ${quickSubcategoryForm.name.trim()} category.`,
@@ -917,6 +853,53 @@ export default function AdminDashboardPage() {
       }));
       void suggestProductSku(productForm.categoryId, nextSubcategory.id);
       toast.success("Subcategory created and selected.");
+    });
+  };
+
+  const reorderSubcategory = async (subcategory: StoreCategory, direction: -1 | 1) => {
+    if (!subcategory.parentId) return;
+    const siblings = categories
+      .filter((category) => category.parentId === subcategory.parentId)
+      .sort((left, right) => left.displayOrder - right.displayOrder);
+    const index = siblings.findIndex((category) => category.id === subcategory.id);
+    const target = siblings[index + direction];
+    if (!target) return;
+    const reordered = [...siblings];
+    reordered[index] = target;
+    reordered[index + direction] = subcategory;
+    await runAction("reorder-subcategories", async () => {
+      await adminService.reorderSubcategories(
+        reordered.map((category, nextIndex) => ({ id: category.id, displayOrder: (nextIndex + 1) * 10 }))
+      );
+      await loadCategories();
+    });
+  };
+
+  const categoryPayload = (category: StoreCategory, overrides: Record<string, unknown> = {}) => ({
+    parentId: category.parentId,
+    name: category.name,
+    slug: category.slug,
+    description: category.description,
+    audience: category.audience,
+    imageUrl: category.imageUrl,
+    imagePublicId: category.imagePublicId,
+    isVisible: category.isVisible,
+    displayOrder: category.displayOrder,
+    ...overrides
+  });
+
+  const reorderMainCategory = async (category: StoreCategory, direction: -1 | 1) => {
+    const parents = [...parentCategoryOptions].sort((left, right) => left.displayOrder - right.displayOrder);
+    const index = parents.findIndex((item) => item.id === category.id);
+    const target = parents[index + direction];
+    if (!target) return;
+    parents[index] = target;
+    parents[index + direction] = category;
+    await runAction("reorder-main-categories", async () => {
+      await Promise.all(parents.map((item, nextIndex) =>
+        adminService.updateCategory(item.id, categoryPayload(item, { displayOrder: (nextIndex + 1) * 10 }))
+      ));
+      await loadCategories();
     });
   };
 
@@ -1135,6 +1118,24 @@ export default function AdminDashboardPage() {
                       Search
                     </button>
                   </div>
+                  <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                    <select
+                      value={productCategoryFilter}
+                      onChange={(event) => {
+                        setProductCategoryFilter(event.target.value);
+                        setProductSubcategoryFilter("");
+                      }}
+                      className={inputClass}
+                      aria-label="Filter by main category"
+                    >
+                      <option value="">All main categories</option>
+                      {parentCategoryOptions.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                    </select>
+                    <select value={productSubcategoryFilter} onChange={(event) => setProductSubcategoryFilter(event.target.value)} className={inputClass} disabled={!productCategoryFilter} aria-label="Filter by subcategory">
+                      <option value="">All subcategories</option>
+                      {productFilterSubcategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                    </select>
+                  </div>
                   <div className="space-y-4 md:hidden">
                     {visibleProducts.map((product) => (
                       <div key={product.id} className="rounded-[24px] border border-black/8 bg-white p-4">
@@ -1148,6 +1149,10 @@ export default function AdminDashboardPage() {
                           </div>
                         </div>
                         <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                          <div className="col-span-2 rounded-2xl bg-[#f8f1e3] px-3 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-black/45">Placement</p>
+                            <p className="mt-1 font-semibold">{categories.find((item) => item.id === product.categoryId)?.name ?? "Unassigned"} · {categories.find((item) => item.id === product.subcategoryId)?.name ?? "Needs review"}</p>
+                          </div>
                           <div className="rounded-2xl bg-[#f8f1e3] px-3 py-3">
                             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-black/45">Price</p>
                             <p className="mt-1 font-semibold">₹{Number(product.price).toLocaleString("en-IN")}</p>
@@ -1213,7 +1218,7 @@ export default function AdminDashboardPage() {
                       <table className="min-w-[760px] text-left text-sm">
                         <thead className="bg-[#f8f1e3] text-brand-black/68">
                           <tr>
-                            {["Product", "Audience", "Price", "Stock", "Flags", "Actions"].map((heading) => (
+                            {["Product", "Main Category", "Subcategory", "Price", "Stock", "Flags", "Actions"].map((heading) => (
                               <th key={heading} className="px-4 py-3 font-semibold">{heading}</th>
                             ))}
                           </tr>
@@ -1225,7 +1230,8 @@ export default function AdminDashboardPage() {
                                 <div className="font-semibold">{product.name}</div>
                                 <div className="text-xs text-brand-black/52">{product.sku}</div>
                               </td>
-                              <td className="px-4 py-3 capitalize">{product.audience}</td>
+                              <td className="px-4 py-3">{categories.find((item) => item.id === product.categoryId)?.name ?? "—"}</td>
+                              <td className="px-4 py-3">{categories.find((item) => item.id === product.subcategoryId)?.name ?? <span className="text-amber-700">Needs review</span>}</td>
                               <td className="px-4 py-3">₹{Number(product.price).toLocaleString("en-IN")}</td>
                               <td className="px-4 py-3">{product.stock}</td>
                               <td className="px-4 py-3">
@@ -1307,7 +1313,7 @@ export default function AdminDashboardPage() {
                     </Field>
                     <div className="md:col-span-2 rounded-[24px] border border-black/8 bg-white px-4 py-4">
                       <div className="grid gap-4 md:grid-cols-2">
-                        <Field label="Category">
+                        <Field label="Main Category *">
                           <select
                             value={productForm.categoryId}
                             onChange={(event) => {
@@ -1330,7 +1336,7 @@ export default function AdminDashboardPage() {
                             {availableCategoryOptions.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
                           </select>
                         </Field>
-                        <Field label="Subcategory">
+                        <Field label="Subcategory *">
                           <select
                             value={productForm.subcategoryId}
                             onChange={(event) => {
@@ -1339,9 +1345,10 @@ export default function AdminDashboardPage() {
                               void suggestProductSku(productForm.categoryId, nextSubcategoryId);
                             }}
                             className={inputClass}
+                            disabled={!productForm.categoryId}
                           >
                             <option value="">
-                              {productForm.categoryId ? "Optional subcategory" : "Select category first"}
+                              {productForm.categoryId ? "Select subcategory" : "Select main category first"}
                             </option>
                             {subcategoryOptions.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
                           </select>
@@ -1639,52 +1646,82 @@ export default function AdminDashboardPage() {
               </div>
             ) : null}
 
+            {activeSection === "customisation" ? <CustomisationAdminPanel /> : null}
+
             {activeSection === "categories" ? (
               <div className="grid gap-6 xl:grid-cols-[1fr_0.92fr]">
                 <Panel title="Categories & Subcategories" description="Manage visibility, hierarchy and category imagery.">
-                  <div className="mb-4 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      className="rounded-full bg-brand-black px-5 py-3 text-sm font-semibold text-white"
-                      onClick={() => void setupBasicCategories()}
-                    >
-                      {busy === "seed-basic-categories" ? "Creating..." : "Add Basic Men / Women / Kids Categories"}
-                    </button>
-                    <p className="self-center text-sm text-brand-black/58">
-                      Creates top-level categories and simple subcategories so product creation is easier.
-                    </p>
+                  <p className="mb-4 text-sm leading-6 text-brand-black/58">Open a main category to add, order, publish or archive its storefront menu items.</p>
+                  <div className="space-y-3">
+                    {parentCategoryOptions.map((parent) => {
+                      const children = categories.filter((category) => category.parentId === parent.id).sort((left, right) => left.displayOrder - right.displayOrder);
+                      return (
+                        <details key={parent.id} open className="group overflow-hidden rounded-[24px] border border-black/8 bg-white">
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-[#f8f1e3] px-4 py-4">
+                            <div>
+                              <p className="font-heading text-xl font-bold">{parent.name}</p>
+                              <p className="mt-1 text-xs text-brand-black/52">{children.length} subcategories · {parent.isVisible ? "Active" : "Inactive"}</p>
+                            </div>
+                            <div className="flex flex-wrap justify-end gap-2" onClick={(event) => event.preventDefault()}>
+                              <button type="button" className="rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-semibold" onClick={() => setCategoryForm({ ...defaultCategoryForm(), parentId: parent.id, audience: parent.audience })}>+ Add subcategory</button>
+                              <IconButton icon={ArrowUp} label="Move category up" onClick={() => void reorderMainCategory(parent, -1)} />
+                              <IconButton icon={ArrowDown} label="Move category down" onClick={() => void reorderMainCategory(parent, 1)} />
+                              <button type="button" className="rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-semibold" onClick={() => void adminService.updateCategory(parent.id, categoryPayload(parent, { isVisible: !parent.isVisible })).then(loadCategories)}>{parent.isVisible ? "Deactivate" : "Activate"}</button>
+                              <IconButton icon={Pencil} label="Edit category" onClick={() => setCategoryForm(toCategoryForm(parent))} />
+                            </div>
+                          </summary>
+                          <div className="divide-y divide-black/6 px-3">
+                            {children.length ? children.map((subcategory) => (
+                              <div key={subcategory.id} className="grid gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="font-semibold">{subcategory.name}</p>
+                                    <span className={subcategory.isVisible ? "rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700" : "rounded-full bg-stone-100 px-2 py-1 text-[11px] font-semibold text-stone-600"}>{subcategory.isVisible ? "Active" : "Inactive"}</span>
+                                  </div>
+                                  <p className="mt-1 text-xs text-brand-black/52">/{subcategory.slug} · {subcategory.productCount ?? 0} products · order {subcategory.displayOrder}</p>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  <IconButton icon={ArrowUp} label="Move up" onClick={() => void reorderSubcategory(subcategory, -1)} />
+                                  <IconButton icon={ArrowDown} label="Move down" onClick={() => void reorderSubcategory(subcategory, 1)} />
+                                  <IconButton icon={Pencil} label="Edit" onClick={() => setCategoryForm(toCategoryForm(subcategory))} />
+                                  <button type="button" className="rounded-full border border-black/10 px-3 py-2 text-xs font-semibold" onClick={() => void adminService.setSubcategoryStatus(subcategory.id, !subcategory.isVisible).then(loadCategories)}>{subcategory.isVisible ? "Archive" : "Activate"}</button>
+                                  <IconButton
+                                    icon={Trash2}
+                                    label="Delete"
+                                    onClick={() => {
+                                      setConfirmMoveTarget("");
+                                      setConfirmState({
+                                      title: (subcategory.productCount ?? 0) > 0 ? "Archive subcategory" : "Delete subcategory",
+                                      description: (subcategory.productCount ?? 0) > 0
+                                        ? `${subcategory.name} has ${subcategory.productCount} assigned products, so it cannot be deleted. Archive it to remove it from customer menus while preserving product links.`
+                                        : `Permanently delete ${subcategory.name}? This empty subcategory can be removed safely.`,
+                                      actionLabel: (subcategory.productCount ?? 0) > 0 ? "Archive" : "Delete",
+                                      onConfirm: async () => {
+                                        if ((subcategory.productCount ?? 0) > 0) await adminService.setSubcategoryStatus(subcategory.id, false);
+                                        else await adminService.deleteSubcategory(subcategory.id);
+                                        toast.success((subcategory.productCount ?? 0) > 0 ? "Subcategory archived." : "Subcategory deleted.");
+                                        await loadCategories();
+                                      },
+                                      moveTargets: (subcategory.productCount ?? 0) > 0 ? children.filter((item) => item.id !== subcategory.id && item.isVisible) : undefined,
+                                      onMove: (subcategory.productCount ?? 0) > 0 ? async (targetId) => {
+                                        await adminService.moveSubcategoryProducts(subcategory.id, targetId);
+                                        toast.success(`Products moved and ${subcategory.name} deleted.`);
+                                        await Promise.all([loadCategories(), loadProducts()]);
+                                      } : undefined
+                                    });}}
+                                  />
+                                </div>
+                              </div>
+                            )) : <p className="px-2 py-5 text-sm text-brand-black/52">No subcategories yet. Add the first menu item for {parent.name}.</p>}
+                          </div>
+                        </details>
+                      );
+                    })}
                   </div>
-                  <SimpleTable
-                    columns={["Name", "Audience", "Parent", "Visible", "Actions"]}
-                    rows={categories.map((category) => [
-                      category.name,
-                      category.audience,
-                      categories.find((entry) => entry.id === category.parentId)?.name ?? "Top level",
-                      category.isVisible ? "Yes" : "No",
-                      <div className="flex gap-2" key={category.id}>
-                        <IconButton icon={Pencil} label="Edit" onClick={() => setCategoryForm(toCategoryForm(category))} />
-                        <IconButton
-                          icon={Trash2}
-                          label="Delete"
-                          onClick={() =>
-                            setConfirmState({
-                              title: "Delete category",
-                              description: `This will soft-delete ${category.name}.`,
-                              onConfirm: async () => {
-                                await adminService.deleteCategory(category.id);
-                                toast.success("Category deleted.");
-                                await loadCategories();
-                              }
-                            })
-                          }
-                        />
-                      </div>
-                    ])}
-                  />
                 </Panel>
                 <Panel title={categoryForm.id ? "Edit Category" : "Create Category"} description="Use a top-level category like Men, Women or Kids first. Then add subcategories under the selected parent.">
                   <div className="grid gap-4">
-                    <Field label="Name"><input value={categoryForm.name} onChange={(event) => setCategoryForm((state) => ({ ...state, name: event.target.value }))} className={inputClass} /></Field>
+                    <Field label="Name"><input value={categoryForm.name} onChange={(event) => setCategoryForm((state) => ({ ...state, name: event.target.value, slug: state.id || state.slug ? state.slug : event.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") }))} className={inputClass} /></Field>
                     <Field label="Slug"><input value={categoryForm.slug} onChange={(event) => setCategoryForm((state) => ({ ...state, slug: event.target.value }))} className={inputClass} /></Field>
                     <Field label="Parent Category">
                       <select value={categoryForm.parentId} onChange={(event) => setCategoryForm((state) => ({ ...state, parentId: event.target.value }))} className={inputClass}>
@@ -2112,6 +2149,18 @@ export default function AdminDashboardPage() {
                 Cancel
               </button>
             </div>
+            {confirmState.moveTargets?.length && confirmState.onMove ? (
+              <div className="mt-5 border-t border-black/8 pt-5">
+                <p className="text-sm font-semibold">Or move assigned products before deleting</p>
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                  <select value={confirmMoveTarget} onChange={(event) => setConfirmMoveTarget(event.target.value)} className={inputClass}>
+                    <option value="">Choose destination</option>
+                    {confirmState.moveTargets.map((target) => <option key={target.id} value={target.id}>{target.name}</option>)}
+                  </select>
+                  <button type="button" disabled={!confirmMoveTarget} className="shrink-0 rounded-full bg-brand-yellow px-5 py-3 text-sm font-semibold text-brand-black disabled:opacity-45" onClick={() => void Promise.resolve(confirmState.onMove?.(confirmMoveTarget)).then(() => setConfirmState(null))}>Move & delete</button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

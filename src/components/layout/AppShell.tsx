@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowUp,
+  ChevronDown,
   Facebook,
   Gift,
   Heart,
@@ -16,10 +17,11 @@ import {
   ShoppingBag,
   X
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { navLinks, siteConfig } from "../../constants/site";
 import { storefrontService } from "../../services/api";
+import type { StoreCategory } from "../../lib/storefront";
 import type { Product } from "../../types/models";
 import { useAppStore } from "../../store/useAppStore";
 import { cn } from "../../utils/format";
@@ -68,6 +70,10 @@ export function AppShell() {
   const [compactHeader, setCompactHeader] = useState(false);
   const [search, setSearch] = useState("");
   const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<StoreCategory[]>([]);
+  const [desktopMenu, setDesktopMenu] = useState<string | null>(null);
+  const [mobileCategory, setMobileCategory] = useState<string | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const [cookieChoice, setCookieChoice] = useState<"essential" | "all" | undefined>(() => {
     const saved = window.localStorage.getItem("fab-cookie-preference");
     return saved === "essential" || saved === "all" ? saved : undefined;
@@ -96,6 +102,48 @@ export function AppShell() {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    storefrontService.getCategories()
+      .then((items) => { if (!cancelled) setCategories(items); })
+      .catch(() => { if (!cancelled) setCategories([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    setDesktopMenu(null);
+    setMobileOpen(false);
+    setMobileCategory(null);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const closeMenus = (event: MouseEvent) => {
+      if (!headerRef.current?.contains(event.target as Node)) setDesktopMenu(null);
+    };
+    const closeWithEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDesktopMenu(null);
+    };
+    document.addEventListener("mousedown", closeMenus);
+    document.addEventListener("keydown", closeWithEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeMenus);
+      document.removeEventListener("keydown", closeWithEscape);
+    };
+  }, []);
+
+  const menuCategories = categories
+    .filter((category) => !category.parentId)
+    .sort((left, right) => left.displayOrder - right.displayOrder);
+  const childrenFor = (parentId: string) => categories
+    .filter((category) => category.parentId === parentId)
+    .sort((left, right) => left.displayOrder - right.displayOrder);
+  const fixedNavLinks = navLinks.filter((link) => !["/shop/men", "/shop/women", "/shop/kids"].includes(link.to));
+  const headerNavLinks = [
+    fixedNavLinks[0],
+    ...menuCategories.map((category) => ({ label: category.name, to: `/shop/${category.slug}` })),
+    ...fixedNavLinks.slice(1)
+  ].filter(Boolean) as typeof navLinks;
 
   useEffect(() => {
     let cancelled = false;
@@ -145,6 +193,7 @@ export function AppShell() {
       </div>
 
       <header
+        ref={headerRef}
         className={cn(
           "main-header sticky top-[var(--announcement-height)] z-50 border-b border-black/6 bg-white/96 backdrop-blur-xl transition-all duration-300 ease-luxe",
           compactHeader && "shadow-soft"
@@ -179,7 +228,63 @@ export function AppShell() {
             </Link>
 
             <nav className="hidden items-center justify-center gap-11 lg:flex">
-              {navLinks.map((link) => (
+              {headerNavLinks.map((link) => {
+                const category = menuCategories.find((item) => item.slug === link.to.split("/").pop());
+                const children = category ? childrenFor(category.id) : [];
+                if (category && children.length) {
+                  const open = desktopMenu === category.slug;
+                  return (
+                    <div
+                      key={link.to + link.label}
+                      className="relative"
+                      onMouseEnter={() => setDesktopMenu(category.slug)}
+                      onMouseLeave={() => setDesktopMenu(null)}
+                      onFocusCapture={() => setDesktopMenu(category.slug)}
+                      onBlurCapture={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget as Node)) setDesktopMenu(null);
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <NavLink
+                          to={link.to}
+                          className={({ isActive }) => cn(
+                            "relative py-2 text-[1rem] font-semibold text-brand-charcoal/78 transition hover:text-brand-black",
+                            "after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:origin-left after:scale-x-0 after:bg-brand-pink after:transition-transform hover:after:scale-x-100",
+                            isActive && "text-brand-black after:scale-x-100"
+                          )}
+                        >{link.label}</NavLink>
+                        <button
+                          type="button"
+                          aria-label={`${open ? "Close" : "Open"} ${category.name} menu`}
+                          aria-expanded={open}
+                          onClick={() => setDesktopMenu(open ? null : category.slug)}
+                          className="ml-1 rounded-full p-1 text-brand-muted hover:bg-brand-soft hover:text-brand-black"
+                        ><ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} /></button>
+                      </div>
+                      <AnimatePresence>
+                        {open ? (
+                          <motion.div
+                            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                            className="absolute left-1/2 top-full z-30 w-[min(720px,72vw)] -translate-x-1/2 rounded-[26px] border border-black/6 bg-white p-6 shadow-soft"
+                          >
+                            <div className="mb-5 flex items-center justify-between border-b border-black/6 pb-4">
+                              <div><p className="font-heading text-xl font-bold">Shop {category.name}</p><p className="text-xs text-brand-muted">Explore every collection</p></div>
+                              <Link to={`/shop/${category.slug}`} className="text-sm font-semibold text-brand-pink">View all →</Link>
+                            </div>
+                            <div className="grid grid-cols-3 gap-x-7 gap-y-1">
+                              {children.map((child) => (
+                                <Link key={child.id} to={`/shop/${category.slug}/${child.slug}`} className="rounded-xl px-3 py-2.5 text-sm font-medium text-brand-charcoal/80 hover:bg-brand-soft hover:text-brand-black">
+                                  {child.name}
+                                </Link>
+                              ))}
+                            </div>
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
+                    </div>
+                  );
+                }
+                return (
                 <NavLink
                   key={link.to + link.label}
                   to={link.to}
@@ -193,7 +298,8 @@ export function AppShell() {
                 >
                   {link.label}
                 </NavLink>
-              ))}
+                );
+              })}
             </nav>
 
             <button
@@ -284,7 +390,29 @@ export function AppShell() {
               >
                 <div className="container-shell py-4">
                   <nav className="grid gap-2">
-                    {[{ label: "Home", to: "/" }, ...navLinks, { label: "Track Order", to: "/track-order" }, { label: "Account", to: "/login" }].map((link) => (
+                    {[{ label: "Home", to: "/" }, ...headerNavLinks, { label: "Track Order", to: "/track-order" }, { label: "Account", to: "/login" }].map((link) => {
+                      const category = menuCategories.find((item) => item.slug === link.to.split("/").pop());
+                      const children = category ? childrenFor(category.id) : [];
+                      if (category && children.length) {
+                        const open = mobileCategory === category.slug;
+                        return (
+                          <div key={link.to + link.label} className="overflow-hidden rounded-2xl bg-brand-soft">
+                            <div className="flex items-center">
+                              <Link to={link.to} onClick={() => setMobileOpen(false)} className="flex-1 px-4 py-3 text-sm font-semibold text-brand-black">{link.label}</Link>
+                              <button type="button" aria-expanded={open} aria-label={`Toggle ${link.label} subcategories`} onClick={() => setMobileCategory(open ? null : category.slug)} className="mr-2 rounded-full p-2 hover:bg-white">
+                                <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+                              </button>
+                            </div>
+                            {open ? (
+                              <div className="grid gap-1 border-t border-black/6 bg-white p-2">
+                                <Link to={`/shop/${category.slug}`} onClick={() => setMobileOpen(false)} className="rounded-xl px-3 py-2 text-sm font-semibold text-brand-pink">View all {category.name}</Link>
+                                {children.map((child) => <Link key={child.id} to={`/shop/${category.slug}/${child.slug}`} onClick={() => setMobileOpen(false)} className="rounded-xl px-3 py-2 text-sm text-brand-charcoal hover:bg-brand-soft">{child.name}</Link>)}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      }
+                      return (
                       <Link
                         key={link.to + link.label}
                         to={link.to}
@@ -293,7 +421,8 @@ export function AppShell() {
                       >
                         {link.label}
                       </Link>
-                    ))}
+                      );
+                    })}
                   </nav>
                 </div>
               </motion.div>

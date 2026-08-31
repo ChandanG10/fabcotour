@@ -34,7 +34,9 @@ export async function uploadImageToCloudinary(file: Express.Multer.File, folder:
 
     return {
       url: result.secure_url,
-      publicId: result.public_id
+      publicId: result.public_id,
+      width: result.width,
+      height: result.height
     };
   } catch (error) {
     const message =
@@ -48,6 +50,21 @@ export async function uploadImageToCloudinary(file: Express.Multer.File, folder:
     }
 
     throw new HttpError(500, message);
+  }
+}
+
+export async function uploadModelToCloudinary(file: Express.Multer.File, folder: string) {
+  try {
+    const dataUri = `data:${file.mimetype || "application/octet-stream"};base64,${file.buffer.toString("base64")}`;
+    const result = await cloudinary.uploader.upload(dataUri, {
+      folder,
+      resource_type: "raw",
+      use_filename: true,
+      unique_filename: true
+    });
+    return { url: result.secure_url, publicId: result.public_id };
+  } catch (error) {
+    throw new HttpError(500, error instanceof Error ? error.message : "3D model upload failed.");
   }
 }
 

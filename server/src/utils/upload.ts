@@ -29,3 +29,25 @@ export const upload = multer({
     callback(null, true);
   }
 });
+
+const modelExtensions = new Set([".glb", ".gltf", ".obj"]);
+const modelMimeTypes = new Set([
+  "model/gltf-binary",
+  "model/gltf+json",
+  "text/plain",
+  "application/json",
+  "application/octet-stream"
+]);
+
+export const modelUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 40 * 1024 * 1024 },
+  fileFilter: (_request, file, callback) => {
+    const extension = extname(file.originalname).toLowerCase();
+    if (!modelExtensions.has(extension) || !modelMimeTypes.has(file.mimetype.toLowerCase())) {
+      callback(new HttpError(400, "Only GLB, GLTF and OBJ model files are allowed."));
+      return;
+    }
+    callback(null, true);
+  }
+});

@@ -2,7 +2,7 @@ import { faqs, mockOrders, mockUser, reviews, testimonials } from "../data/catal
 import { apiRequest, apiUpload } from "../lib/http";
 import type { HomepagePayload, StoreCategory, StoreProduct } from "../lib/storefront";
 import { normalizeCategory, normalizeHomepagePayload, normalizeProduct } from "../lib/storefront";
-import type { Order, Product, Review, User } from "../types/models";
+import type { CustomPricingBreakdown, CustomProductConfiguration, CustomProductSummary, CustomisedCartData, Order, Product, Review, User } from "../types/models";
 
 interface ListResponse<T> {
   items: T[];
@@ -59,6 +59,12 @@ export const storefrontService = {
   async getCategories() {
     return fetchStoreCategories();
   },
+  async getSubcategories(categorySlug: string) {
+    const response = await apiRequest<ListResponse<StoreCategory>>(
+      `/categories/${encodeURIComponent(categorySlug)}/subcategories`
+    );
+    return response.items;
+  },
   async getProducts(params?: Record<string, string | number | boolean | undefined>) {
     return fetchStoreProducts(params);
   },
@@ -86,12 +92,20 @@ export const storefrontService = {
     paymentMethod: "Cash on delivery";
     couponCode?: string;
     items: Array<{
+      type?: "STANDARD_PRODUCT";
       productId: string;
       variantId?: string;
       selectedColor?: string;
       selectedSize?: string;
       quantity: number;
       customization?: import("../types/models").CustomDesign;
+    } | {
+      type: "CUSTOMISED_PRODUCT";
+      customProductId: string; customColourId: string; size: string; quantity: number; printingMethodId: string;
+      usedSides: import("../types/models").ProductSide[];
+      canvasJson: import("../types/models").CustomisedCartData["canvasJson"];
+      previewUrls: import("../types/models").CustomisedCartData["previewUrls"];
+      originalArtworkUrls: string[]; customerNote: string;
     }>;
   }) {
     const response = await apiRequest<ItemResponse<{
@@ -119,6 +133,30 @@ export const storefrontService = {
       Cancelled: ["Order cancelled"], Returned: ["Return recorded"]
     };
     return { ...response.item, trackingSteps: statusSteps[response.item.status] ?? [response.item.status] };
+  }
+};
+
+export const customisationService = {
+  async getProducts() {
+    const response = await apiRequest<ListResponse<CustomProductSummary>>("/customisation/products");
+    return response.items;
+  },
+  async getConfiguration(slug: string) {
+    const response = await apiRequest<ItemResponse<CustomProductConfiguration>>(`/customisation/products/${encodeURIComponent(slug)}/configuration`);
+    return response.item;
+  },
+  async uploadArtwork(file: File, signal?: AbortSignal) {
+    const formData = new FormData();
+    formData.append("artwork", file);
+    const response = await apiUpload<ItemResponse<{ id: string; url: string; publicId: string; width: number; height: number; originalName: string }>>("/customisation/uploads", formData, signal);
+    return response.item;
+  },
+  async price(payload: {
+    customProductId: string; customColourId: string; size: string; quantity: number;
+    printingMethodId: string; usedSides: CustomisedCartData["usedSides"]; canvasJson: CustomisedCartData["canvasJson"];
+  }) {
+    const response = await apiRequest<ItemResponse<CustomPricingBreakdown>>("/customisation/price", { method: "POST", body: JSON.stringify(payload) });
+    return response.item;
   }
 };
 
@@ -206,8 +244,10 @@ export const adminService = {
       salesChart: Array<Record<string, unknown>>;
     }>("/admin/dashboard");
   },
-  listProducts(page = 1, search = "") {
+  listProducts(page = 1, search = "", categoryId = "", subcategoryId = "") {
     const query = new URLSearchParams({ page: String(page), limit: "20", search });
+    if (categoryId) query.set("categoryId", categoryId);
+    if (subcategoryId) query.set("subcategoryId", subcategoryId);
     return apiRequest<ListResponse<StoreProduct>>(`/admin/products?${query.toString()}`);
   },
   getProduct(id: string) {
@@ -270,6 +310,39 @@ export const adminService = {
   },
   deleteCategory(id: string) {
     return apiRequest<void>(`/admin/categories/${id}`, { method: "DELETE" });
+  },
+  createSubcategory(categoryId: string, payload: Record<string, unknown>) {
+    return apiRequest<ItemResponse<StoreCategory>>(`/admin/categories/${categoryId}/subcategories`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+  },
+  updateSubcategory(id: string, payload: Record<string, unknown>) {
+    return apiRequest<ItemResponse<StoreCategory>>(`/admin/subcategories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    });
+  },
+  setSubcategoryStatus(id: string, isVisible: boolean) {
+    return apiRequest<ItemResponse<StoreCategory>>(`/admin/subcategories/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ isVisible })
+    });
+  },
+  reorderSubcategories(items: Array<{ id: string; displayOrder: number }>) {
+    return apiRequest<{ success: true }>("/admin/subcategories/reorder", {
+      method: "PATCH",
+      body: JSON.stringify({ items })
+    });
+  },
+  deleteSubcategory(id: string) {
+    return apiRequest<void>(`/admin/subcategories/${id}`, { method: "DELETE" });
+  },
+  moveSubcategoryProducts(id: string, targetSubcategoryId: string) {
+    return apiRequest<{ success: true }>(`/admin/subcategories/${id}/move-products`, {
+      method: "PATCH",
+      body: JSON.stringify({ targetSubcategoryId })
+    });
   },
   getHomepage() {
     return apiRequest<HomepagePayload>("/admin/homepage").then(normalizeHomepagePayload);
@@ -343,8 +416,47 @@ export const adminService = {
     files.forEach((file) => {
       formData.append("images", file);
     });
-    const response = await apiUpload<{ items: Array<{ url: string; publicId: string }> }>("/admin/uploads/images", formData);
+    const response = await apiUpload<{ items: Array<{ url: string; publicId: string; width: number; height: number }> }>("/admin/uploads/images", formData);
     return response.items;
+  },
+  async uploadCustomModel(file: File) {
+    const formData = new FormData();
+    formData.append("model", file);
+    const response = await apiUpload<ItemResponse<{ url: string; publicId: string; originalName: string }>>("/admin/uploads/models", formData);
+    return response.item;
+  },
+  listCustomCategories() {
+    return apiRequest<ListResponse<Record<string, unknown>>>("/admin/customisation/categories");
+  },
+  createCustomCategory(payload: Record<string, unknown>) {
+    return apiRequest<ItemResponse<Record<string, unknown>>>("/admin/customisation/categories", { method: "POST", body: JSON.stringify(payload) });
+  },
+  updateCustomCategory(id: string, payload: Record<string, unknown>) {
+    return apiRequest<ItemResponse<Record<string, unknown>>>(`/admin/customisation/categories/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  },
+  deleteCustomCategory(id: string) {
+    return apiRequest<void>(`/admin/customisation/categories/${id}`, { method: "DELETE" });
+  },
+  listCustomProducts() {
+    return apiRequest<ListResponse<CustomProductSummary>>("/admin/customisation/products");
+  },
+  getCustomProductConfiguration(slug: string) {
+    return apiRequest<ItemResponse<CustomProductConfiguration>>(`/admin/customisation/products/${encodeURIComponent(slug)}/configuration`).then((response) => response.item);
+  },
+  createCustomProduct(payload: Record<string, unknown>) {
+    return apiRequest<ItemResponse<CustomProductConfiguration>>("/admin/customisation/products", { method: "POST", body: JSON.stringify(payload) });
+  },
+  updateCustomProduct(id: string, payload: Record<string, unknown>) {
+    return apiRequest<ItemResponse<CustomProductConfiguration>>(`/admin/customisation/products/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+  },
+  deleteCustomProduct(id: string) {
+    return apiRequest<void>(`/admin/customisation/products/${id}`, { method: "DELETE" });
+  },
+  listCustomPrintingMethods() {
+    return apiRequest<ListResponse<Record<string, unknown>>>("/admin/customisation/printing-methods");
+  },
+  listCustomOrders() {
+    return apiRequest<ListResponse<Record<string, unknown>>>("/admin/customisation/orders");
   }
 };
 

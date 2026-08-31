@@ -1,5 +1,5 @@
 import { SlidersHorizontal, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Seo } from "../components/common/Seo";
 import { Breadcrumbs, EmptyState, LoadingState, ProductCard, SearchInput, SectionIntro } from "../components/common/Ui";
@@ -16,7 +16,8 @@ const sortOptions = [
 ] as const;
 
 export default function ShopPage() {
-  const { slug } = useParams();
+  const { slug, categorySlug, subcategorySlug } = useParams();
+  const routeCategorySlug = categorySlug ?? slug;
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<(typeof sortOptions)[number]>("Popularity");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -28,9 +29,17 @@ export default function ShopPage() {
     fabric: "",
     fit: "",
     printMethod: "",
+    subcategory: "",
     customisable: false,
     price: 5000
   });
+
+  useEffect(() => {
+    setSearch("");
+    setFilters(resetFilters());
+    setVisibleCount(12);
+    setMobileFiltersOpen(false);
+  }, [routeCategorySlug, subcategorySlug]);
 
   const { data, loading, error } = useAsyncData(async () => {
     const [categories, products] = await Promise.all([
@@ -40,18 +49,31 @@ export default function ShopPage() {
     return { categories, products };
   }, []);
 
-  const activeCategory = data?.categories.find((category) => category.slug === slug);
+  const activeCategory = data?.categories.find(
+    (category) => !category.parentId && category.slug === routeCategorySlug
+  );
+  const activeSubcategory = data?.categories.find(
+    (category) => category.parentId === activeCategory?.id && category.slug === subcategorySlug
+  );
+  const routeMissing = Boolean(
+    routeCategorySlug && data && (!activeCategory || (subcategorySlug && !activeSubcategory))
+  );
+  const availableSubcategories = (data?.categories ?? []).filter(
+    (category) => category.parentId === activeCategory?.id
+  );
+  const categoryProducts = (data?.products ?? []).filter(
+    (product) => !activeCategory || product.categoryId === activeCategory.id
+  );
 
   const filteredProducts = useMemo(() => {
     const products = data?.products ?? [];
 
     return products
       .filter((product) => {
-        const isAudienceRoute = slug === "men" || slug === "women" || slug === "kids";
-        const matchesRoute = slug
-          ? isAudienceRoute
-            ? product.audience.includes(slug)
-            : product.categoryId === activeCategory?.id || product.subcategory.toLowerCase().includes(slug.replace(/-/g, " "))
+        const selectedSubcategoryId = activeSubcategory?.id || filters.subcategory;
+        const matchesRoute = activeCategory ? product.categoryId === activeCategory.id : !routeCategorySlug;
+        const matchesSubcategory = selectedSubcategoryId
+          ? product.subcategoryId === selectedSubcategoryId
           : true;
         const matchesSearch =
           search.length === 0 ||
@@ -68,6 +90,7 @@ export default function ShopPage() {
 
         return (
           matchesRoute &&
+          matchesSubcategory &&
           matchesSearch &&
           matchesGender &&
           matchesSize &&
@@ -93,7 +116,7 @@ export default function ShopPage() {
             return right.reviewCount - left.reviewCount;
         }
       });
-  }, [activeCategory?.id, data?.products, filters, search, slug, sortBy]);
+  }, [activeCategory, activeSubcategory?.id, data?.products, filters, routeCategorySlug, search, sortBy]);
 
   if (loading) {
     return (
@@ -111,6 +134,19 @@ export default function ShopPage() {
     );
   }
 
+  if (routeMissing) {
+    return (
+      <div className="container-shell py-20">
+        <Seo title="Collection not found" description="This collection is unavailable." path={location.pathname} />
+        <EmptyState
+          title="Collection not found"
+          description="This category may be inactive, renamed or unavailable. Browse the current catalogue instead."
+          action={<Link to="/shop" className="button-primary">Shop all products</Link>}
+        />
+      </div>
+    );
+  }
+
   const activeChips = Object.entries(filters)
     .filter(([key, value]) => key !== "price" && value !== "" && value !== false)
     .map(([key, value]) => `${key}: ${String(value)}`);
@@ -118,22 +154,26 @@ export default function ShopPage() {
   return (
     <>
       <Seo
-        title={activeCategory ? `${activeCategory.name} Collection` : "Shop All Products"}
-        description="Browse customisable apparel, caps, hoodies, gifts and premium merchandise with flexible filters and quick customisation access."
-        path={slug ? `/shop/${slug}` : "/shop"}
+        title={activeSubcategory ? `${activeSubcategory.name} for ${activeCategory?.name}` : activeCategory ? `${activeCategory.name} Collection` : "Shop All Products"}
+        description={activeSubcategory?.description ?? activeCategory?.description ?? "Browse customisable apparel, caps, hoodies, gifts and premium merchandise."}
+        path={activeSubcategory ? `/shop/${activeCategory?.slug}/${activeSubcategory.slug}` : routeCategorySlug ? `/shop/${routeCategorySlug}` : "/shop"}
       />
       <div className="container-shell py-8 pb-28">
-        <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Shop", to: "/shop" }, ...(activeCategory ? [{ label: activeCategory.name }] : [])]} />
+        <Breadcrumbs items={[
+          { label: "Home", to: "/" },
+          ...(activeCategory ? [{ label: activeCategory.name, to: activeSubcategory ? `/shop/${activeCategory.slug}` : undefined }] : [{ label: "Shop" }]),
+          ...(activeSubcategory ? [{ label: activeSubcategory.name }] : [])
+        ]} />
         <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
           <aside className="hidden lg:block">
-            <FilterPanel products={data.products} filters={filters} onChange={setFilters} onClear={() => setFilters(resetFilters())} />
+            <FilterPanel products={categoryProducts} subcategories={availableSubcategories} lockedSubcategory={Boolean(activeSubcategory)} filters={filters} onChange={setFilters} onClear={() => setFilters(resetFilters())} />
           </aside>
           <section className="space-y-6">
             <SectionIntro
               eyebrow="Product listing"
-              title={activeCategory ? activeCategory.name : "All products"}
+              title={activeSubcategory ? activeSubcategory.name : activeCategory ? activeCategory.name : "All products"}
               description={
-                activeCategory?.description ??
+                activeSubcategory?.description ?? activeCategory?.description ??
                 "Browse premium tees, caps, hoodies, gifts and curated merchandising pieces ready for customisation."
               }
             />
@@ -215,7 +255,7 @@ export default function ShopPage() {
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <FilterPanel products={data.products} filters={filters} onChange={setFilters} onClear={() => setFilters(resetFilters())} compact />
+              <FilterPanel products={categoryProducts} subcategories={availableSubcategories} lockedSubcategory={Boolean(activeSubcategory)} filters={filters} onChange={setFilters} onClear={() => setFilters(resetFilters())} compact />
             </div>
           </>
         ) : null}
@@ -245,6 +285,7 @@ function resetFilters() {
     fabric: "",
     fit: "",
     printMethod: "",
+    subcategory: "",
     customisable: false,
     price: 5000
   };
@@ -252,12 +293,16 @@ function resetFilters() {
 
 function FilterPanel({
   products,
+  subcategories,
+  lockedSubcategory,
   filters,
   onChange,
   onClear,
   compact
 }: {
   products: Awaited<ReturnType<typeof storefrontService.getNormalizedProducts>>;
+  subcategories: Awaited<ReturnType<typeof storefrontService.getCategories>>;
+  lockedSubcategory?: boolean;
   filters: ReturnType<typeof resetFilters>;
   onChange: (value: ReturnType<typeof resetFilters>) => void;
   onClear: () => void;
@@ -280,6 +325,23 @@ function FilterPanel({
         </button>
       </div>
       <div className="space-y-5">
+        {subcategories.length && !lockedSubcategory ? (
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold">Subcategory</span>
+            <select
+              value={filters.subcategory}
+              onChange={(event) => setField("subcategory", event.target.value)}
+              className="w-full rounded-2xl border border-black/10 bg-brand-offwhite px-4 py-3 text-sm outline-none"
+            >
+              <option value="">All subcategories</option>
+              {subcategories.map((subcategory) => (
+                <option key={subcategory.id} value={subcategory.id}>
+                  {subcategory.name} ({subcategory.productCount ?? products.filter((product) => product.subcategoryId === subcategory.id).length})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <FilterSelect label="Gender" value={filters.gender} onChange={(value) => setField("gender", value)} options={["men", "women", "kids", "unisex"]} />
         <FilterSelect label="Size" value={filters.size} onChange={(value) => setField("size", value)} options={["XS", "S", "M", "L", "XL", "XXL", "One Size"]} />
         <FilterSelect label="Colour" value={filters.colour} onChange={(value) => setField("colour", value)} options={colours} />

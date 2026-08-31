@@ -98,8 +98,9 @@ export function CartPage() {
   });
   const checkoutRows = cartRows.filter((row) => !row.item.savedForLater);
 
-  const subtotal = checkoutRows.reduce((sum, row) =>
-    sum + (row.product?.price ?? 0) * row.item.quantity + calculateCustomizationCharge(row.item.customization), 0);
+  const subtotal = checkoutRows.reduce((sum, row) => row.item.customisation
+    ? sum + row.item.customisation.pricingBreakdown.total - row.item.customisation.pricingBreakdown.delivery
+    : sum + (row.product?.price ?? 0) * row.item.quantity + calculateCustomizationCharge(row.item.customization), 0);
   const shipping = subtotal === 0 || subtotal >= 999 ? 0 : 99;
   const coupon = coupons.find((entry) => entry.code === activeCoupon);
   const discount =
@@ -134,7 +135,21 @@ export function CartPage() {
           <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
             <div className="space-y-5">
               {cartRows.map((row) =>
-                row.product ? (
+                row.item.customisation ? (
+                  <article key={row.item.id} className="overflow-hidden rounded-[28px] border border-brand-cyan/25 bg-white p-5 shadow-card">
+                    <div className="flex flex-col gap-5 md:flex-row">
+                      <div className="relative h-40 w-36 shrink-0 overflow-hidden rounded-[24px] bg-brand-grey" aria-label={`${row.item.customisation.productName} customised preview`} role="img">
+                        <img src={row.item.customisation.productImage} alt="" className="absolute inset-0 h-full w-full object-contain" />
+                        {row.item.customisation.previewUrls.front ? <img src={row.item.customisation.previewUrls.front} alt="" className="pointer-events-none absolute object-contain" style={{ left: `${row.item.customisation.previewPlacement?.left ?? 34}%`, top: `${row.item.customisation.previewPlacement?.top ?? 28}%`, width: `${row.item.customisation.previewPlacement?.width ?? 32}%`, height: `${row.item.customisation.previewPlacement?.height ?? 44}%` }} /> : null}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-4"><div><span className="inline-flex rounded-full bg-brand-cyan/15 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.1em] text-brand-cyan-dark">Customised Product</span><h2 className="mt-3 font-heading text-[2rem] font-bold leading-[1.05] sm:text-2xl">{row.item.customisation.productName}</h2><p className="mt-1 text-sm text-brand-black/55">{row.item.customisation.colourName} • {row.item.customisation.size} • {row.item.customisation.usedSides.join(", ")}</p></div><button type="button" aria-label={`Remove ${row.item.customisation.productName}`} onClick={() => removeFromCart(row.item.id)} className="shrink-0 rounded-full border border-black/10 p-2"><Trash2 className="h-4 w-4" /></button></div>
+                        <div className="mt-4 flex flex-wrap items-center gap-4"><span className="inline-flex min-h-11 items-center rounded-full border border-black/10 px-4 text-sm font-semibold">Qty {row.item.quantity}</span><button type="button" onClick={() => saveForLater(row.item.id)} className="text-sm font-semibold">{row.item.savedForLater ? "Move to bag" : "Save for later"}</button><Link to={`/customise/${row.item.customisation.productSlug}/design?colour=${encodeURIComponent(row.item.customisation.colourSlug || row.item.customisation.colourName.toLowerCase())}&cartItem=${encodeURIComponent(row.item.id)}`} className="text-sm font-semibold text-brand-cyan-dark">Edit quantity or design</Link></div>
+                        <p className="mt-4 text-xl font-bold">{currencyFormatter.format(row.item.customisation.pricingBreakdown.total - row.item.customisation.pricingBreakdown.delivery)}</p>
+                      </div>
+                    </div>
+                  </article>
+                ) : row.product ? (
                   <article key={row.item.id} className="overflow-hidden rounded-[28px] bg-white p-5 shadow-card">
                     <div className="flex flex-col gap-5 md:flex-row">
                       <AssetImage
@@ -270,6 +285,7 @@ export function CheckoutPage() {
   });
 
   const subtotal = checkoutItems.reduce((sum, item) => {
+    if (item.customisation) return sum + item.customisation.pricingBreakdown.total - item.customisation.pricingBreakdown.delivery;
     const product = productList.find((entry) => entry.id === item.productId);
     return sum + (product?.price ?? 0) * item.quantity + calculateCustomizationCharge(item.customization);
   }, 0);
@@ -303,13 +319,29 @@ export function CheckoutPage() {
         address: activeAddress,
         paymentMethod: selectedPayment,
         couponCode: useAppStore.getState().activeCoupon,
-        items: checkoutItems.map((item) => ({
-          productId: item.productId,
+        items: checkoutItems.map((item) => item.customisation ? ({
+          type: "CUSTOMISED_PRODUCT" as const,
+          customProductId: item.customisation.customProductId,
+          customColourId: item.customisation.customColourId,
+          size: item.customisation.size,
+          quantity: item.quantity,
+          printingMethodId: item.customisation.printingMethodId,
+          usedSides: item.customisation.usedSides,
+          canvasJson: item.customisation.canvasJson,
+          printingAreas: item.customisation.printingAreas ?? Object.fromEntries((["front", "back", "right", "left"] as const).map((side) => { const frame = item.customisation!.framePlacements?.[side] ?? { xPercent: 0, yPercent: 0, widthPercent: 100, heightPercent: 100 }; return [side, { x: frame.xPercent / 100, y: frame.yPercent / 100, width: frame.widthPercent / 100, height: frame.heightPercent / 100 }]; })),
+          safeAreaVersions: item.customisation.safeAreaVersions ?? { front: "legacy-1", back: "legacy-1", right: "legacy-1", left: "legacy-1" },
+          previewUrls: item.customisation.previewUrls,
+          originalArtworkUrls: item.customisation.originalArtworkUrls,
+          highResolutionFiles: item.customisation.highResolutionFiles ?? item.customisation.originalArtworkUrls,
+          dpiWarningStatus: item.customisation.dpiWarningStatus ?? {},
+          physicalOutputDimensions: item.customisation.physicalOutputDimensions ?? {},
+          customerNote: item.customisation.customerNote
+        }) : ({
+          type: "STANDARD_PRODUCT" as const, productId: item.productId,
           variantId: item.variantId === item.productId ? undefined : item.variantId,
           selectedColor: item.selectedColor ?? item.customization?.productColor,
           selectedSize: item.selectedSize ?? item.customization?.size,
-          quantity: item.quantity,
-          customization: item.customization
+          quantity: item.quantity, customization: item.customization
         }))
       });
       completeOrder(order);
@@ -383,7 +415,9 @@ export function CheckoutPage() {
                 <p className="text-sm leading-7 text-brand-black/68">Review your items, shipping address and discounts before choosing a payment method.</p>
                 {checkoutItems.map((item) => {
                   const product = productList.find((entry) => entry.id === item.productId);
-                  return product ? (
+                  return item.customisation ? (
+                    <div key={item.id} className="rounded-[24px] border border-brand-cyan/20 bg-brand-grey p-4"><div className="text-xs font-extrabold uppercase tracking-[0.1em] text-brand-cyan-dark">Customised Product</div><div className="mt-1 font-semibold">{item.customisation.productName}</div><div className="text-sm text-brand-black/60">{item.customisation.colourName} · {item.customisation.size} · Qty {item.quantity}</div></div>
+                  ) : product ? (
                     <div key={item.id} className="rounded-[24px] bg-brand-grey p-4">
                       <div className="font-semibold">{product.name}</div>
                       <div className="text-sm text-brand-black/60">Qty {item.quantity}</div>

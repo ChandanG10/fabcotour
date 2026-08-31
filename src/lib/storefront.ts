@@ -11,6 +11,7 @@ export interface StoreCategory {
   imagePublicId: string | null;
   isVisible: boolean;
   displayOrder: number;
+  productCount?: number;
 }
 
 export interface StoreProductImage {
@@ -65,6 +66,7 @@ export interface StoreProduct {
   isCustomisable: boolean;
   isArchived: boolean;
   isVisible: boolean;
+  subcategoryReviewRequired?: boolean;
   createdAt: string;
   updatedAt: string;
   images: StoreProductImage[];
@@ -270,6 +272,7 @@ export function normalizeProduct(product: StoreProduct, categories: StoreCategor
     slug: product.slug,
     audience: audienceList,
     categoryId: product.categoryId,
+    subcategoryId: product.subcategoryId,
     subcategory: category?.name ?? product.audience.toUpperCase(),
     price: Number(product.price),
     originalPrice: product.originalPrice == null ? Number(product.price) : Number(product.originalPrice),

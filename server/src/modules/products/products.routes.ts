@@ -225,6 +225,7 @@ interface ProductRow extends RowDataPacket {
   is_customisable: number;
   is_archived: number;
   is_visible: number;
+  subcategory_review_required?: number;
   created_at: string;
   updated_at: string;
 }
@@ -304,6 +305,7 @@ async function fetchProductsByWhere(whereClause = "1=1", params: unknown[] = [])
     isCustomisable: Boolean(product.is_customisable),
     isArchived: Boolean(product.is_archived),
     isVisible: Boolean(product.is_visible),
+    subcategoryReviewRequired: Boolean(product.subcategory_review_required),
     createdAt: product.created_at,
     updatedAt: product.updated_at,
     images: images
@@ -386,15 +388,59 @@ async function replaceVariants(connection: PoolConnection, productId: string, va
   }
 }
 
+async function assertProductTaxonomy(
+  connection: PoolConnection,
+  categoryId: string,
+  subcategoryId: string | null | undefined
+) {
+  const ids = subcategoryId ? [categoryId, subcategoryId] : [categoryId];
+  const [rows] = await connection.query<RowDataPacket[]>(
+    `SELECT id, parent_id, slug, audience
+     FROM categories
+     WHERE deleted_at IS NULL AND id IN (${ids.map(() => "?").join(", ")})`,
+    ids
+  );
+  const category = rows.find((row) => String(row.id) === categoryId);
+  const subcategory = subcategoryId
+    ? rows.find((row) => String(row.id) === subcategoryId)
+    : undefined;
+
+  if (!category || category.parent_id) {
+    throw new HttpError(400, "Choose a valid main category.");
+  }
+  if (["men", "women", "kids"].includes(String(category.slug)) && !subcategoryId) {
+    throw new HttpError(400, "Choose a subcategory for this product.");
+  }
+  if (subcategoryId && (!subcategory || String(subcategory.parent_id) !== categoryId)) {
+    throw new HttpError(400, "Choose a subcategory that belongs to the selected main category.");
+  }
+}
+
 export const productsRouter = Router();
+productsRouter.use(requireAdminAuth);
 
 productsRouter.get(
   "/",
   asyncHandler(async (request, response) => {
     const { page, limit, search } = paginationSchema.parse(request.query);
     const offset = (page - 1) * limit;
-    const where = search ? "deleted_at IS NULL AND name LIKE ?" : "deleted_at IS NULL";
-    const params = search ? [`%${search}%`] : [];
+    const categoryId = typeof request.query.categoryId === "string" ? request.query.categoryId : undefined;
+    const subcategoryId = typeof request.query.subcategoryId === "string" ? request.query.subcategoryId : undefined;
+    const clauses = ["deleted_at IS NULL"];
+    const params: unknown[] = [];
+    if (search) {
+      clauses.push("name LIKE ?");
+      params.push(`%${search}%`);
+    }
+    if (categoryId) {
+      clauses.push("category_id = ?");
+      params.push(categoryId);
+    }
+    if (subcategoryId) {
+      clauses.push("subcategory_id = ?");
+      params.push(subcategoryId);
+    }
+    const where = clauses.join(" AND ");
     const [rows] = await pool.query<ProductRow[]>(
       `SELECT * FROM products WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
       [...params, limit, offset]
@@ -476,6 +522,7 @@ productsRouter.post(
     const slug = payload.slug ? slugify(payload.slug) : slugify(payload.name);
 
     await withTransaction(async (connection) => {
+      await assertProductTaxonomy(connection, payload.categoryId, payload.subcategoryId);
       await connection.query(
         `INSERT INTO products (
           id, category_id, subcategory_id, name, slug, sku, short_description, description, specifications,
@@ -538,6 +585,7 @@ productsRouter.put(
     const slug = payload.slug ? slugify(payload.slug) : slugify(payload.name);
 
     await withTransaction(async (connection) => {
+      await assertProductTaxonomy(connection, payload.categoryId, payload.subcategoryId);
       await connection.query(
         `UPDATE products
          SET category_id = ?, subcategory_id = ?, name = ?, slug = ?, sku = ?, short_description = ?, description = ?,
@@ -666,6 +714,8 @@ storeProductsRouter.get(
   asyncHandler(async (request, response) => {
     const audience = typeof request.query.audience === "string" ? request.query.audience : undefined;
     const categoryId = typeof request.query.categoryId === "string" ? request.query.categoryId : undefined;
+    const categorySlug = typeof request.query.category === "string" ? request.query.category : undefined;
+    const subcategorySlug = typeof request.query.subcategory === "string" ? request.query.subcategory : undefined;
     const featured = request.query.featured === "true";
     const newArrival = request.query.newArrival === "true";
     const search = typeof request.query.search === "string" ? request.query.search : undefined;
@@ -680,6 +730,35 @@ storeProductsRouter.get(
     if (categoryId) {
       clauses.push("(category_id = ? OR subcategory_id = ?)");
       params.push(categoryId, categoryId);
+    }
+    if (categorySlug || subcategorySlug) {
+      if (!categorySlug) {
+        throw new HttpError(400, "A main category is required when filtering by subcategory.");
+      }
+      const [categoryRows] = await pool.query<RowDataPacket[]>(
+        "SELECT id FROM categories WHERE parent_id IS NULL AND slug = ? AND is_visible = 1 AND deleted_at IS NULL LIMIT 1",
+        [categorySlug]
+      );
+      const resolvedCategoryId = categoryRows[0]?.id ? String(categoryRows[0].id) : null;
+      if (!resolvedCategoryId) {
+        throw new HttpError(404, "Category not found.");
+      }
+      clauses.push("category_id = ?");
+      params.push(resolvedCategoryId);
+
+      if (subcategorySlug) {
+        const [subcategoryRows] = await pool.query<RowDataPacket[]>(
+          `SELECT id FROM categories
+           WHERE parent_id = ? AND slug = ? AND is_visible = 1 AND deleted_at IS NULL LIMIT 1`,
+          [resolvedCategoryId, subcategorySlug]
+        );
+        const resolvedSubcategoryId = subcategoryRows[0]?.id ? String(subcategoryRows[0].id) : null;
+        if (!resolvedSubcategoryId) {
+          throw new HttpError(404, "Subcategory not found.");
+        }
+        clauses.push("subcategory_id = ?");
+        params.push(resolvedSubcategoryId);
+      }
     }
     if (featured) {
       clauses.push("is_featured = 1");

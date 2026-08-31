@@ -1,0 +1,11 @@
+Use case: ui-mockup
+Asset type: original visual design benchmark for a responsive ecommerce custom-product flow
+Primary request: Create one polished desktop web UI presentation showing two FabPodd screens side by side: a dedicated blank-product catalogue and a full-screen 2D product design studio. The catalogue starts immediately with the exact heading “CHOOSE A PRODUCT TO CUSTOMISE”, uppercase category dividers, generous four-column blank-product cards, product name, small specification, price, colour count, and compact cyan Customise action. The designer has no ecommerce header/footer: a slim navy top toolbar with logo area, undo/redo/save/share/contact, a narrow left vertical tool rail, a large central off-white workspace dominated by a blank white oversized T-shirt front mockup with a subtle dotted rectangular print area and one selected typographic design, and circular Front/Back/Right/Left thumbnails on the right plus a compact order action. Show the product canvas as the clear visual focus, not inside a card.
+Style/medium: high-fidelity production web interface mockup, crisp editorial ecommerce art direction, no photoreal people
+Composition/framing: 16:9 landscape presentation, catalogue screen on left third and designer screen on right two-thirds; coherent responsive component grammar
+Color palette: FabPodd deep navy #07163D, white, off-white #F8FAFC, cyan #08B9D4, sparing pink #F72572 and orange #FFB21A accents
+Typography: modern Manrope/Inter-like sans serif, bold uppercase catalogue headings, compact functional studio labels
+Materials/textures: clean blank apparel cut-outs, hairline borders, almost no shadows, precise spacing
+Text (verbatim): “CHOOSE A PRODUCT TO CUSTOMISE”, “APPAREL”, “MEN’S / UNISEX”, “CUSTOMISE”, “FRONT”, “BACK”, “RIGHT”, “LEFT”, “ORDER”
+Constraints: original interface only; blank unprinted product mockups; accessibility-minded hierarchy; product occupies most of studio height; no large hero; no small floating designer card
+Avoid: any third-party logos or branding, YourDesignStore assets or lookalike branding, printed lifestyle photography, gradients, glassmorphism, excessive rounded cards, purple, dashboard-style metric cards, illegible microtext

@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 import { mockOrders, mockUser } from "../data/catalog";
 import { coupons } from "../constants/site";
 import { calculateCustomizationCharge } from "../lib/pricing";
-import type { Address, CartItem, CustomDesign, DesignLayer, Order, User, WishlistItem } from "../types/models";
+import type { Address, CartItem, CustomDesign, CustomisedCartData, DesignLayer, Order, User, WishlistItem } from "../types/models";
 
 interface AppState {
   user: User | null;
@@ -18,6 +18,7 @@ interface AppState {
   logout: () => void;
   addAddress: (address: Address) => void;
   addToCart: (item: Omit<CartItem, "id">) => void;
+  updateCustomCartItem: (id: string, customisation: CustomisedCartData) => void;
   updateCartQuantity: (id: string, quantity: number) => void;
   removeFromCart: (id: string) => void;
   saveForLater: (id: string) => void;
@@ -109,6 +110,15 @@ export const useAppStore = create<AppState>()(
             }
           ]
         })),
+      updateCustomCartItem: (id, customisation) => set((state) => ({
+        cart: state.cart.map((item) => item.id === id ? {
+          ...item,
+          quantity: customisation.quantity,
+          selectedColor: customisation.colourName,
+          selectedSize: customisation.size,
+          customisation: structuredClone(customisation)
+        } : item)
+      })),
       updateCartQuantity: (id, quantity) =>
         set((state) => ({
           cart: state.cart.map((item) => (item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item))

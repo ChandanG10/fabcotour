@@ -8,6 +8,7 @@ const HomePage = lazy(() => import("../pages/HomePage"));
 const ShopPage = lazy(() => import("../pages/ShopPage"));
 const ProductPage = lazy(() => import("../pages/ProductPage"));
 const CustomizerPage = lazy(() => import("../pages/CustomizerPage"));
+const CustomDesignerPage = lazy(() => import("../pages/CustomDesignerPage"));
 const CorporatePage = lazy(() => import("../pages/BusinessPages").then((module) => ({ default: module.CorporatePage })));
 const BulkOrdersPage = lazy(() => import("../pages/BusinessPages").then((module) => ({ default: module.BulkOrdersPage })));
 const SellerPage = lazy(() => import("../pages/BusinessPages").then((module) => ({ default: module.SellerPage })));
@@ -53,10 +54,13 @@ export function AppRouter() {
           />
         </Route>
 
+        <Route path="/customise/:productSlug/design" element={<CustomDesignerPage />} />
+
         <Route element={<AppShell />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/shop/:slug" element={<ShopPage />} />
+          <Route path="/shop/:categorySlug/:subcategorySlug" element={<ShopPage />} />
           <Route path="/product/:slug" element={<ProductPage />} />
           <Route path="/customise" element={<CustomizerPage />} />
           <Route path="/corporate-gifting" element={<CorporatePage />} />

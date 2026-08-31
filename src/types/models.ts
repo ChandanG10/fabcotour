@@ -71,6 +71,7 @@ export interface Product {
   slug: string;
   audience: Array<"men" | "women" | "kids" | "unisex">;
   categoryId: string;
+  subcategoryId?: string | null;
   subcategory: string;
   price: number;
   originalPrice: number;
@@ -134,6 +135,166 @@ export interface CustomDesign {
   layers: DesignLayer[];
 }
 
+export type ProductSide = "front" | "back" | "right" | "left";
+
+export interface NormalizedRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface NormalizedPoint { x: number; y: number }
+
+export interface CustomProductView {
+  id: string;
+  side: ProductSide;
+  imageUrl: string;
+  publicId?: string | null;
+  naturalWidth: number;
+  naturalHeight: number;
+  isPlaceholder: boolean;
+}
+
+export interface CustomProductColour {
+  id: string;
+  name: string;
+  slug: string;
+  hexCode: string;
+  additionalPrice: number;
+  isDefault: boolean;
+  isActive: boolean;
+  displayOrder: number;
+  views: CustomProductView[];
+}
+
+export interface CustomPrintArea {
+  id: string;
+  colourId?: string | null;
+  side: ProductSide;
+  referenceWidth: number;
+  referenceHeight: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  xPercent?: number;
+  yPercent?: number;
+  widthPercent?: number;
+  heightPercent?: number;
+  defaultArea?: NormalizedRect;
+  printingAreaMode: "fixed" | "customer_adjustable";
+  safeBoundaryType: "rectangle" | "polygon" | "mask";
+  garmentSafeArea: NormalizedRect;
+  garmentSafePolygon: NormalizedPoint[];
+  garmentMaskUrl?: string | null;
+  safeAreaVersion: string;
+  minWidthNormalized: number;
+  minHeightNormalized: number;
+  maxWidthNormalized: number;
+  maxHeightNormalized: number;
+  allowMove: boolean;
+  allowResize: boolean;
+  allowCustomAreaSelection: boolean;
+  realWidthCm: number;
+  realHeightCm: number;
+  safeMargin: number;
+  isActive: boolean;
+}
+
+export interface CustomPrintingMethod {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  minimumQuantity: number;
+  baseCharge: number;
+  chargePerSide: number;
+  isActive: boolean;
+}
+
+export interface CustomProductSummary {
+  id: string;
+  categoryId: string;
+  subcategoryId?: string | null;
+  categoryName: string;
+  subcategoryName?: string | null;
+  name: string;
+  slug: string;
+  description?: string | null;
+  specification?: string | null;
+  basePrice: number;
+  thumbnailUrl?: string | null;
+  modelUrl?: string | null;
+  viewerMode: "auto" | "real3d" | "image360";
+  modelFormat?: "glb" | "gltf" | "obj" | null;
+  modelScale: number;
+  modelPosition: [number, number, number];
+  modelRotation: [number, number, number];
+  materialNames: string[];
+  modelArtworkMappings: Partial<Record<ProductSide, {
+    position: [number, number, number];
+    rotation: [number, number, number];
+    size: [number, number];
+  }>>;
+  defaultColourId?: string | null;
+  isActive: boolean;
+  isFeatured: boolean;
+  isPlaceholder: boolean;
+  displayOrder: number;
+  colourCount: number;
+}
+
+export interface CustomProductConfiguration extends CustomProductSummary {
+  colours: CustomProductColour[];
+  sizes: Array<{ id: string; name: string; additionalPrice: number; isActive: boolean }>;
+  printAreas: CustomPrintArea[];
+  printingMethods: CustomPrintingMethod[];
+}
+
+export interface CustomPricingBreakdown {
+  productName: string;
+  printingMethod: string;
+  quantity: number;
+  usedSides: ProductSide[];
+  baseProduct: number;
+  additionalColour: number;
+  printingBase: number;
+  printingSides: number;
+  quantityDiscount: number;
+  taxes: number;
+  delivery: number;
+  total: number;
+}
+
+export interface CustomisedCartData {
+  type: "CUSTOMISED_PRODUCT";
+  customProductId: string;
+  customColourId: string;
+  productName: string;
+  productSlug: string;
+  colourSlug: string;
+  colourName: string;
+  size: string;
+  quantity: number;
+  printingMethodId: string;
+  printingMethodName: string;
+  usedSides: ProductSide[];
+  canvasJson: Record<ProductSide, Record<string, unknown> | null>;
+  previewUrls: Record<ProductSide, string | null>;
+  originalArtworkUrls: string[];
+  pricingBreakdown: CustomPricingBreakdown;
+  customerNote: string;
+  productImage: string;
+  previewPlacement: { left: number; top: number; width: number; height: number };
+  framePlacements?: Record<ProductSide, { xPercent: number; yPercent: number; widthPercent: number; heightPercent: number }>;
+  printingAreas?: Record<ProductSide, NormalizedRect>;
+  safeAreaVersions?: Record<ProductSide, string>;
+  highResolutionFiles?: string[];
+  dpiWarningStatus?: Record<ProductSide, "ok" | "warning" | "unknown">;
+  physicalOutputDimensions?: Partial<Record<ProductSide, { widthCm: number; heightCm: number }>>;
+}
+
 export interface CartItem {
   id: string;
   productId: string;
@@ -142,6 +303,7 @@ export interface CartItem {
   selectedSize?: string;
   quantity: number;
   customization?: CustomDesign;
+  customisation?: CustomisedCartData;
   savedForLater?: boolean;
 }
 

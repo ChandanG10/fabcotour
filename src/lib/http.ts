@@ -90,11 +90,12 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   return payload as T;
 }
 
-export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+export async function apiUpload<T>(path: string, formData: FormData, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`, {
     method: "POST",
     credentials: "include",
-    body: formData
+    body: formData,
+    signal
   });
 
   const payload = await response.json().catch(() => ({}));

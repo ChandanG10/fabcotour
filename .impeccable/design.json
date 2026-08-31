@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-30T06:12:44Z",
+  "title": "Design System: FabPodd Customise",
+  "extensions": {
+    "colorMeta": {
+      "ink-navy": {
+        "role": "primary",
+        "displayName": "Deep Ink Navy",
+        "canonical": "#07163d",
+        "tonalRamp": ["oklch(15% 0.065 262)", "oklch(25% 0.065 262)", "oklch(35% 0.065 262)", "oklch(47% 0.065 262)", "oklch(59% 0.055 262)", "oklch(71% 0.04 262)", "oklch(83% 0.025 262)", "oklch(95% 0.01 262)"]
+      },
+      "action-cyan": {
+        "role": "primary",
+        "displayName": "Action Cyan",
+        "canonical": "#08b9d4",
+        "tonalRamp": ["oklch(15% 0.11 211)", "oklch(25% 0.12 211)", "oklch(35% 0.13 211)", "oklch(47% 0.14 211)", "oklch(59% 0.14 211)", "oklch(71% 0.12 211)", "oklch(83% 0.08 211)", "oklch(95% 0.025 211)"]
+      },
+      "action-cyan-dark": {
+        "role": "primary",
+        "displayName": "Boundary Cyan",
+        "canonical": "#008ca5",
+        "tonalRamp": ["oklch(15% 0.09 211)", "oklch(25% 0.1 211)", "oklch(35% 0.11 211)", "oklch(47% 0.115 211)", "oklch(59% 0.105 211)", "oklch(71% 0.085 211)", "oklch(83% 0.055 211)", "oklch(95% 0.018 211)"]
+      },
+      "workspace-cool": {
+        "role": "neutral",
+        "displayName": "Workspace Cool",
+        "canonical": "#f4f6f8",
+        "tonalRamp": ["oklch(15% 0.008 244)", "oklch(25% 0.008 244)", "oklch(35% 0.008 244)", "oklch(47% 0.008 244)", "oklch(59% 0.008 244)", "oklch(71% 0.008 244)", "oklch(83% 0.008 244)", "oklch(95% 0.008 244)"]
+      },
+      "media-cool": {
+        "role": "neutral",
+        "displayName": "Media Cool",
+        "canonical": "#f7f8fa",
+        "tonalRamp": ["oklch(15% 0.006 250)", "oklch(25% 0.006 250)", "oklch(35% 0.006 250)", "oklch(47% 0.006 250)", "oklch(59% 0.006 250)", "oklch(71% 0.006 250)", "oklch(83% 0.006 250)", "oklch(95% 0.006 250)"]
+      },
+      "surface-white": {
+        "role": "neutral",
+        "displayName": "Surface White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["oklch(15% 0 0)", "oklch(25% 0 0)", "oklch(35% 0 0)", "oklch(47% 0 0)", "oklch(59% 0 0)", "oklch(71% 0 0)", "oklch(83% 0 0)", "oklch(100% 0 0)"]
+      },
+      "structure-cool": {
+        "role": "neutral",
+        "displayName": "Structure Cool",
+        "canonical": "#d5dce3",
+        "tonalRamp": ["oklch(15% 0.015 244)", "oklch(25% 0.015 244)", "oklch(35% 0.015 244)", "oklch(47% 0.015 244)", "oklch(59% 0.015 244)", "oklch(71% 0.015 244)", "oklch(83% 0.015 244)", "oklch(95% 0.01 244)"]
+      },
+      "muted-slate": {
+        "role": "neutral",
+        "displayName": "Muted Slate",
+        "canonical": "#6b7280",
+        "tonalRamp": ["oklch(15% 0.02 255)", "oklch(25% 0.025 255)", "oklch(35% 0.025 255)", "oklch(47% 0.025 255)", "oklch(59% 0.025 255)", "oklch(71% 0.022 255)", "oklch(83% 0.016 255)", "oklch(95% 0.007 255)"]
+      },
+      "error-red": {
+        "role": "tertiary",
+        "displayName": "Explicit Error Red",
+        "canonical": "#dc2626",
+        "tonalRamp": ["oklch(15% 0.1 27)", "oklch(25% 0.14 27)", "oklch(35% 0.18 27)", "oklch(47% 0.21 27)", "oklch(59% 0.2 27)", "oklch(71% 0.15 27)", "oklch(83% 0.09 27)", "oklch(95% 0.025 27)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Catalogue Display", "purpose": "Oversized uppercase catalogue title only." },
+      "headline": { "displayName": "Operational Headline", "purpose": "Panel headings and major operational section titles." },
+      "body": { "displayName": "Operational Body", "purpose": "Guidance, descriptions, and readable commerce information." },
+      "action": { "displayName": "Compact Action", "purpose": "Primary calls to action and compact commerce controls." },
+      "label": { "displayName": "Micro Label", "purpose": "Uppercase field labels and small operational metadata." },
+      "badge": { "displayName": "Image Badge", "purpose": "Readable uppercase placeholder and mockup labels over product imagery." }
+    },
+    "shadows": [
+      { "name": "panel-edge", "value": "12px 0 32px rgb(7 22 61 / 0.1)", "purpose": "Context inspector overlapping the workspace; reverse the x-axis for the order panel." },
+      { "name": "floating-control", "value": "0 9px 24px rgb(7 22 61 / 0.11)", "purpose": "Object and zoom toolbars above the product stage." },
+      { "name": "mobile-sheet", "value": "0 -14px 38px rgb(7 22 61 / 0.17)", "purpose": "Context sheet rising above the mobile tool rail." },
+      { "name": "modal", "value": "0 24px 80px rgb(7 22 61 / 0.32)", "purpose": "Tutorial and 360° preview dialogs above the navy-tinted scrim." }
+    ],
+    "motion": [
+      { "name": "studio-state", "value": "200ms ease-out", "purpose": "Canvas scale and compact editor state changes." },
+      { "name": "catalogue-luxe", "value": "300ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Catalogue action and image hover feedback." },
+      { "name": "product-image", "value": "500ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Restrained product-image scale on catalogue hover." },
+      { "name": "preview-arrive", "value": "280ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Fallback preview side transition from soft blur and 0.985 scale to a stable product view." },
+      { "name": "preview-orbit", "value": "autoRotateSpeed 1.8; dampingFactor 0.08; distance 1.15–4.2", "purpose": "True 3D garment rotation and constrained wheel/pinch zoom with damped direct manipulation; users can pause automatic rotation." },
+      { "name": "preview-fallback-cycle", "value": "950ms per side", "purpose": "Automatic front-right-back-left cycle when a product has no GLB model." },
+      { "name": "reduced-motion", "value": "0.01ms", "purpose": "Global reduced-motion override for animations and transitions." }
+    ],
+    "breakpoints": [
+      { "name": "narrow", "value": "360px" },
+      { "name": "mobile", "value": "767px" },
+      { "name": "catalogue-sm", "value": "640px" },
+      { "name": "catalogue-md", "value": "768px" },
+      { "name": "catalogue-lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Studio Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The decisive action inside a context panel or order flow.",
+      "html": "<button class=\"ds-btn-primary\">ADD TEXT</button>",
+      "css": ".ds-btn-primary { display:inline-flex; min-height:46px; align-items:center; justify-content:center; gap:8px; border:1px solid var(--brand-cyan, #08b9d4); border-radius:999px; background:var(--brand-cyan, #08b9d4); padding:0 18px; color:var(--brand-navy, #07163d); font:800 12px Inter,sans-serif; letter-spacing:.08em; cursor:pointer; transition:background .2s ease-out,color .2s ease-out,transform .2s ease-out; } .ds-btn-primary:hover { background:var(--brand-navy, #07163d); color:#fff; transform:translateY(-1px); } .ds-btn-primary:focus-visible { outline:2px solid var(--brand-cyan, #08b9d4); outline-offset:3px; } .ds-btn-primary:active { transform:translateY(0); }"
+    },
+    {
+      "name": "Outline Studio Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "A secondary action that stays quiet inside white panels.",
+      "html": "<button class=\"ds-btn-outline\">CHANGE PRODUCT</button>",
+      "css": ".ds-btn-outline { display:inline-flex; min-height:46px; align-items:center; justify-content:center; border:1px solid #d5dce3; border-radius:999px; background:#fff; padding:0 18px; color:var(--brand-navy, #07163d); font:800 12px Inter,sans-serif; letter-spacing:.04em; cursor:pointer; transition:border-color .2s ease-out,background .2s ease-out; } .ds-btn-outline:hover { border-color:var(--brand-cyan, #08b9d4); background:rgb(8 185 212 / .08); } .ds-btn-outline:focus-visible { outline:2px solid var(--brand-cyan, #08b9d4); outline-offset:3px; } .ds-btn-outline:active { background:rgb(8 185 212 / .14); }"
+    },
+    {
+      "name": "Studio Tool",
+      "kind": "nav",
+      "refersTo": "tool-active",
+      "description": "Icon-and-label destination used in the navy rail; shown here in its active state.",
+      "html": "<button class=\"ds-studio-tool active\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M4 7V4h16v3M9 20h6M12 4v16\"/></svg><span>TEXT</span></button>",
+      "css": ".ds-studio-tool { display:flex; min-width:64px; min-height:62px; flex-direction:column; align-items:center; justify-content:center; gap:5px; border:0; border-radius:12px; background:transparent; color:#fff; font:700 10px Inter,sans-serif; cursor:pointer; } .ds-studio-tool svg { width:20px; height:20px; } .ds-studio-tool:hover,.ds-studio-tool.active { background:var(--brand-cyan, #08b9d4); color:var(--brand-navy, #07163d); } .ds-studio-tool:focus-visible { outline:2px solid var(--brand-cyan, #08b9d4); outline-offset:2px; } .ds-studio-tool:active { transform:scale(.98); }"
+    },
+    {
+      "name": "Studio Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Compact operational field used throughout product, text, and order panels.",
+      "html": "<label class=\"ds-field-wrap\"><span>SIZE</span><input class=\"ds-field\" value=\"Medium\" /></label>",
+      "css": ".ds-field-wrap { display:grid; gap:7px; color:rgb(7 22 61 / .6); font:800 10px Inter,sans-serif; letter-spacing:.14em; } .ds-field { width:100%; min-height:44px; border:1px solid #d5dce3; border-radius:12px; background:#fff; padding:10px 12px; color:var(--brand-navy, #07163d); font:400 14px Inter,sans-serif; letter-spacing:normal; outline:none; } .ds-field:hover { border-color:#aeb9c5; } .ds-field:focus-visible { border-color:var(--brand-cyan, #08b9d4); box-shadow:0 0 0 3px rgb(8 185 212 / .14); }"
+    },
+    {
+      "name": "Selection Chip",
+      "kind": "chip",
+      "description": "A compact binary or segmented choice; shown selected.",
+      "html": "<button class=\"ds-chip active\">BOLD</button>",
+      "css": ".ds-chip { min-height:44px; border:1px solid #d5dce3; border-radius:999px; background:#fff; padding:0 13px; color:var(--brand-navy, #07163d); font:700 12px Inter,sans-serif; cursor:pointer; transition:background .2s ease-out,color .2s ease-out,border-color .2s ease-out; } .ds-chip:hover { border-color:var(--brand-cyan, #08b9d4); } .ds-chip.active { border-color:var(--brand-navy, #07163d); background:var(--brand-navy, #07163d); color:#fff; } .ds-chip:focus-visible { outline:2px solid var(--brand-cyan, #08b9d4); outline-offset:2px; } .ds-chip:active { transform:scale(.98); }"
+    },
+    {
+      "name": "Blank Product Card",
+      "kind": "card",
+      "description": "The catalogue scanning unit for a dedicated blank product.",
+      "html": "<article class=\"ds-product-card\"><div class=\"ds-product-media\"><span class=\"ds-product-badge\">SAMPLE MOCKUP</span><svg viewBox=\"0 0 160 184\" aria-label=\"Blank T-shirt placeholder\"><path d=\"M51 31 66 20h28l15 11 27 16-14 27-14-8v87H52V66l-14 8-14-27 27-16Z\" fill=\"#fff\" stroke=\"#d5dce3\" stroke-width=\"2\"/><path d=\"M66 20c2 13 26 13 28 0\" fill=\"none\" stroke=\"#d5dce3\" stroke-width=\"2\"/></svg></div><h3>Classic T-shirt</h3><p>180 GSM · 100% Cotton</p><div class=\"ds-product-meta\"><strong>From ₹549</strong><span>20 colours</span></div><button>CUSTOMISE →</button></article>",
+      "css": ".ds-product-card { width:250px; color:var(--brand-navy, #07163d); font-family:Inter,sans-serif; } .ds-product-media { position:relative; display:grid; aspect-ratio:4/4.55; place-items:center; overflow:hidden; border:1px solid #d5dce3; border-radius:16px; background:#f7f8fa; } .ds-product-badge { position:absolute; z-index:1; top:12px; left:12px; border-radius:999px; background:rgb(255 255 255 / .94); padding:4px 10px; color:var(--brand-navy, #07163d); font:700 11px/1 Inter,sans-serif; letter-spacing:.12em; box-shadow:0 20px 60px rgb(17 24 39 / .08); } .ds-product-media svg { width:78%; transition:transform .5s cubic-bezier(.22,1,.36,1); } .ds-product-card:hover .ds-product-media svg { transform:scale(1.035); } .ds-product-card h3 { min-height:2.75rem; margin:16px 0 0; font:800 16px/1.35 Inter,sans-serif; } .ds-product-card p { margin:4px 0 0; color:rgb(7 22 61 / .58); font:400 12px/20px Inter,sans-serif; } .ds-product-meta { display:flex; justify-content:space-between; gap:8px; margin-top:12px; font-size:12px; } .ds-product-meta span { color:rgb(7 22 61 / .58); } .ds-product-card button { width:100%; min-height:44px; margin-top:16px; border:0; border-radius:999px; background:var(--brand-cyan, #08b9d4); color:var(--brand-navy, #07163d); font:800 12px Inter,sans-serif; letter-spacing:.08em; cursor:pointer; transition:background .3s cubic-bezier(.22,1,.36,1),color .3s cubic-bezier(.22,1,.36,1); } .ds-product-card button:hover { background:var(--brand-navy, #07163d); color:#fff; } .ds-product-card button:focus-visible { outline:2px solid var(--brand-cyan, #08b9d4); outline-offset:3px; }"
+    },
+    {
+      "name": "Active Product Side",
+      "kind": "nav",
+      "description": "The signature four-side navigator, shown in its active state.",
+      "html": "<button class=\"ds-side active\"><span><svg viewBox=\"0 0 80 80\" aria-hidden=\"true\"><path d=\"M26 20 33 15h14l7 5 13 8-7 13-7-4v31H27V37l-7 4-7-13 13-8Z\" fill=\"#fff\" stroke=\"#d5dce3\"/></svg></span><strong>FRONT</strong></button>",
+      "css": ".ds-side { display:grid; min-width:72px; min-height:83px; place-items:center; gap:2px; border:0; background:transparent; color:var(--brand-navy, #07163d); font:700 9px Inter,sans-serif; cursor:pointer; } .ds-side span { display:grid; width:56px; height:56px; place-items:center; overflow:hidden; border:1px solid #d5dce3; border-radius:50%; background:#f7f8fa; } .ds-side svg { width:100%; height:100%; } .ds-side:hover span,.ds-side.active span { border:2px solid var(--brand-cyan, #08b9d4); } .ds-side:focus-visible { outline:2px solid var(--brand-cyan, #08b9d4); outline-offset:2px; border-radius:10px; } .ds-side:active { transform:scale(.98); }"
+    },
+    {
+      "name": "Placement Frame and Artwork",
+      "kind": "custom",
+      "description": "A per-side dotted frame stored in normalized contained-image coordinates, placed and resized before upload, followed by auto-fitted customer artwork that remains editable inside it.",
+      "html": "<section class=\"ds-print-stage\"><svg viewBox=\"0 0 240 280\" aria-label=\"Blank garment\"><path d=\"M76 52 97 36h46l21 16 45 25-22 42-23-12v138H76V107l-23 12-22-42 45-25Z\" fill=\"#fff\" stroke=\"#d5dce3\" stroke-width=\"2\"/><path d=\"M97 36c3 22 43 22 46 0\" fill=\"none\" stroke=\"#d5dce3\" stroke-width=\"3\"/></svg><div class=\"ds-print-boundary\" aria-label=\"Front customer placement frame\"><div class=\"ds-selected-artwork\"><strong>YOUR<br/>ART</strong><span class=\"ds-art-handle tl\"></span><span class=\"ds-art-handle tr\"></span><span class=\"ds-art-handle bl\"></span><span class=\"ds-art-handle br\"></span><span class=\"ds-rotate-stem\"></span><span class=\"ds-rotate-handle\"></span></div></div></section>",
+      "css": ".ds-print-stage { position:relative; width:320px; height:368px; overflow:hidden; background:#f4f6f8; color:var(--brand-navy, #07163d); font-family:Inter,sans-serif; } .ds-print-stage>svg { width:100%; height:100%; } .ds-print-boundary { position:absolute; top:29%; left:35%; width:30%; height:36%; border:1.5px dashed rgb(8 140 165 / .7); background:rgb(255 255 255 / .03); } .ds-selected-artwork { position:absolute; top:19%; left:18%; display:grid; width:64%; height:62%; place-items:center; border:1px solid var(--brand-cyan, #08b9d4); color:var(--brand-navy, #07163d); cursor:move; text-align:center; transform:rotate(-4deg); } .ds-selected-artwork strong { font:800 18px/.85 Manrope,sans-serif; } .ds-art-handle,.ds-rotate-handle { position:absolute; width:11px; height:11px; border:2px solid var(--brand-navy, #07163d); border-radius:50%; background:var(--brand-cyan, #08b9d4); } .ds-art-handle.tl { top:-6px; left:-6px; cursor:nw-resize; } .ds-art-handle.tr { top:-6px; right:-6px; cursor:ne-resize; } .ds-art-handle.bl { bottom:-6px; left:-6px; cursor:sw-resize; } .ds-art-handle.br { right:-6px; bottom:-6px; cursor:se-resize; } .ds-rotate-stem { position:absolute; top:-22px; left:50%; width:1px; height:17px; background:var(--brand-cyan, #08b9d4); } .ds-rotate-handle { top:-30px; left:calc(50% - 5px); cursor:grab; }"
+    },
+    {
+      "name": "360° Product Preview",
+      "kind": "custom",
+      "description": "The shared inspection shell: it hosts the true orbitable GLB when configured and the complete four-view fallback otherwise.",
+      "html": "<section class=\"ds-preview\"><header><div><h2>Your design in 360°</h2><p>Drag to rotate the real 3D garment. Scroll or pinch to zoom.</p></div><button aria-label=\"Close 360 degree preview\">×</button></header><div class=\"ds-preview-stage\"><span class=\"ds-preview-mode\">3D MODEL</span><svg viewBox=\"0 0 240 280\" aria-label=\"Interactive garment preview placeholder\"><defs><linearGradient id=\"ds-shirt-light\" x1=\"0\" x2=\"1\"><stop stop-color=\"#e8edf1\"/><stop offset=\".5\" stop-color=\"#fff\"/><stop offset=\"1\" stop-color=\"#dce3e8\"/></linearGradient></defs><path d=\"M76 52 97 36h46l21 16 45 25-22 42-23-12v138H76V107l-23 12-22-42 45-25Z\" fill=\"url(#ds-shirt-light)\" stroke=\"#d5dce3\" stroke-width=\"2\"/><path d=\"M97 36c3 22 43 22 46 0\" fill=\"none\" stroke=\"#cbd4dc\" stroke-width=\"3\"/><rect x=\"93\" y=\"86\" width=\"54\" height=\"75\" rx=\"2\" fill=\"rgb(8 185 212 / .12)\" stroke=\"#008ca5\" stroke-dasharray=\"4 3\"/></svg></div><footer><button class=\"ds-preview-play\">Ⅱ <span>PAUSE ROTATION</span></button><p>DRAG TO ROTATE · SCROLL OR PINCH TO ZOOM</p></footer></section>",
+      "css": ".ds-preview { width:min(900px,100%); overflow:hidden; border-radius:16px; background:#f4f6f8; color:var(--brand-navy, #07163d); box-shadow:0 24px 80px rgb(7 22 61 / .32); font-family:Inter,sans-serif; } .ds-preview header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:20px 22px; border-bottom:1px solid #d5dce3; background:#fff; } .ds-preview h2 { margin:0; font:800 22px/1.2 Manrope,sans-serif; } .ds-preview header p { margin:4px 0 0; color:rgb(7 22 61 / .58); font:400 13px/1.5 Inter,sans-serif; } .ds-preview header button { display:grid; min-width:44px; min-height:44px; place-items:center; border:1px solid #d5dce3; border-radius:50%; background:#fff; color:var(--brand-navy, #07163d); font-size:22px; cursor:pointer; } .ds-preview-stage { position:relative; display:grid; min-height:360px; place-items:center; overflow:hidden; background:#f4f6f8; } .ds-preview-stage svg { width:min(38%,240px); filter:drop-shadow(0 22px 28px rgb(7 22 61 / .12)); } .ds-preview-mode { position:absolute; top:20px; left:22px; border-radius:999px; background:var(--brand-navy, #07163d); padding:8px 13px; color:#fff; font:800 11px/1 Inter,sans-serif; letter-spacing:.12em; } .ds-preview footer { display:flex; min-height:70px; align-items:center; justify-content:space-between; gap:18px; padding:10px 22px; border-top:1px solid #d5dce3; background:#fff; } .ds-preview-play { display:inline-flex; min-height:44px; align-items:center; gap:8px; border:0; border-radius:999px; background:var(--brand-cyan, #08b9d4); padding:0 17px; color:var(--brand-navy, #07163d); font:800 12px Inter,sans-serif; cursor:pointer; } .ds-preview footer p { margin:0; color:rgb(7 22 61 / .5); font:700 11px Inter,sans-serif; letter-spacing:.08em; } .ds-preview button:hover { border-color:var(--brand-cyan, #08b9d4); } .ds-preview button:focus-visible { outline:2px solid var(--brand-cyan, #08b9d4); outline-offset:2px; } .ds-preview button:active { transform:scale(.98); }"
+    },
+    {
+      "name": "Context Panel",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "An overlapping editor inspector with a sticky heading and compact operational content.",
+      "html": "<section class=\"ds-panel\"><header><h2>Text</h2><button aria-label=\"Close\">×</button></header><div class=\"ds-panel-body\"><span>TEXT</span><p>Your idea</p></div></section>",
+      "css": ".ds-panel { width:340px; overflow:hidden; border-right:1px solid #d5dce3; background:#fff; color:var(--brand-navy, #07163d); box-shadow:12px 0 32px rgb(7 22 61 / .1); font-family:Inter,sans-serif; } .ds-panel header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px; border-bottom:1px solid #d5dce3; background:#fff; } .ds-panel h2 { margin:0; font:800 20px/1.2 Manrope,sans-serif; text-transform:capitalize; } .ds-panel header button { display:grid; width:44px; height:44px; place-items:center; border:1px solid #d5dce3; border-radius:50%; background:#fff; color:var(--brand-navy, #07163d); font-size:22px; cursor:pointer; } .ds-panel header button:hover { border-color:var(--brand-cyan, #08b9d4); } .ds-panel header button:focus-visible { outline:2px solid var(--brand-cyan, #08b9d4); outline-offset:2px; } .ds-panel-body { display:grid; gap:7px; padding:20px; } .ds-panel-body span { color:rgb(7 22 61 / .6); font:800 10px Inter,sans-serif; letter-spacing:.14em; } .ds-panel-body p { margin:0; font:400 14px/1.65 Inter,sans-serif; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Focused Production Studio",
+    "overview": "FabPodd Customise is an orderly path from a wall of blank goods into a precise, full-screen making environment. The catalogue feels spacious and editorial enough to help shoppers choose; the designer becomes compact, persistent, and operational so the garment and printable result remain the visual centre.\n\nThe system is crisp rather than sterile: deep navy gives the workspace authority, cyan makes actions and state changes unmistakable, and cool near-whites leave room for product imagery. Rounded controls and diffuse shadows soften the tool without making it playful. Product, print boundary, side state, and price always outrank decoration.",
+    "keyCharacteristics": [
+      "Product imagery is dominant and sits on quiet cool-grey stages.",
+      "Navy provides structure; cyan is reserved for action, focus, and selection.",
+      "Persistent desktop rails become compact mobile rails and bottom sheets.",
+      "Dense operational controls retain generous touch targets and direct labels.",
+      "The four independent product sides are the signature interaction, projected onto a true 3D garment when a product model exists and preserved as a four-view fallback otherwise."
+    ],
+    "rules": [
+      { "name": "The Cyan Means Something Rule", "body": "Cyan marks an action, focus, selection, or printable boundary; it is not ambient decoration.", "section": "colors" },
+      { "name": "The Product Owns the Quiet Rule", "body": "Keep the garment and blank-product imagery on white or cool near-white surfaces so artwork and product color remain truthful.", "section": "colors" },
+      { "name": "The Two-Voice Rule", "body": "Use Manrope for display and decisive headings; use Inter for controls, fields, metadata, and explanatory copy.", "section": "typography" },
+      { "name": "The Working-Layer Rule", "body": "Use elevation only when one operational surface physically overlaps another; ordinary cards and fields remain border-led.", "section": "elevation" },
+      { "name": "The Reserved Pill Rule", "body": "Use full rounding for actions, selectors, and compact status—not for structural panels or product media.", "section": "shapes" },
+      { "name": "The Product-Isolation Preview Rule", "body": "Resolve the viewer from the active product ID and configuration only. In Auto mode, use a valid product-level model first and fall back to that same product's complete four-view mockups on absence or load failure. Never reuse another product's model, imagery, artwork state, or cache key.", "section": "components" },
+      { "name": "The Frame-Before-Artwork Rule", "body": "Start each side from its admin-configured frame, let the customer place and size that frame in Image Step 1, then auto-fit uploaded artwork inside the chosen frame in Step 2.", "section": "components" }
+    ],
+    "dos": [
+      "Do keep the garment or blank-product image as the largest and quietest element in its context.",
+      "Do reserve cyan for meaningful action and state, including focus and the print boundary.",
+      "Do preserve all four product sides as equal, persistent states across viewport sizes.",
+      "Do keep interactive targets at least 44px and pair primary tool icons with visible labels when space allows.",
+      "Do use borders for resting structure and shadows only for overlapping working layers.",
+      "Do project every available side preview onto the configured 3D garment and preserve garment color while the model rotates.",
+      "Do keep the four-view preview fully usable for products without a model URL.",
+      "Do preserve a separate customer placement frame for front, back, right, and left.",
+      "Do require Done resizing before upload, then auto-fit and center artwork inside the chosen frame while preserving its aspect ratio."
+    ],
+    "donts": [
+      "Don't turn the editor into a grid of freestanding dashboard cards; its shell, rails, stage, and inspectors are persistent spatial regions.",
+      "Don't use decorative gradients, hard offset shadows, or ornamental color on the product stage.",
+      "Don't use cyan as a general fill when no action, selection, focus, or print meaning is present.",
+      "Don't make product media or structural panels pill-shaped.",
+      "Don't let navigation, tool panels, or decoration outrank the garment, print area, side state, or live order action.",
+      "Don't require a GLB to inspect a design or present the four-view fallback as if it were continuous 3D geometry.",
+      "Don't treat the admin frame as immutable or allow upload while the active side's frame is still being resized."
+    ]
+  }
+}

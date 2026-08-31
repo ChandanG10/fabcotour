@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 920" role="img" aria-labelledby="title desc">
+  <title id="title">navy blank T-shirt left placeholder</title>
+  <desc id="desc">Original FabPodd development placeholder. Replace through Customisation admin before production.</desc>
+  <rect width="800" height="920" fill="#f7f8fa"/>
+  <ellipse cx="400" cy="838" rx="248" ry="27" fill="#07163d" opacity=".07"/>
+  <path d="M446 126 Q362 84 280 138 L176 192 L100 360 L184 392 L245 286 L234 818 Q384 846 508 806 L518 300 L610 358 L672 286 L544 172Z" fill="#14244b" stroke="#08132e" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M314 126 Q400 160 486 126" fill="none" stroke="#34466f" stroke-width="8"/>
+  <path d="M238 794 Q390 832 560 800" fill="none" stroke="#34466f" stroke-width="5" opacity=".7"/>
+  <text x="400" y="890" text-anchor="middle" fill="#5d687c" font-family="Arial, sans-serif" font-size="18" letter-spacing="3">PLACEHOLDER · LEFT</text>
+</svg>

@@ -15,7 +15,12 @@ storeRouter.get(
   "/categories",
   asyncHandler(async (_request, response) => {
     const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT * FROM categories WHERE deleted_at IS NULL AND is_visible = 1 ORDER BY display_order ASC, created_at DESC`
+      `SELECT c.*,
+              (SELECT COUNT(*) FROM products p
+               WHERE p.subcategory_id = c.id AND p.deleted_at IS NULL AND p.is_archived = 0 AND p.is_visible = 1) AS product_count
+       FROM categories c
+       WHERE c.deleted_at IS NULL AND c.is_visible = 1
+       ORDER BY c.display_order ASC, c.created_at DESC`
     );
     response.json({
       items: rows.map((row) => ({
@@ -28,7 +33,8 @@ storeRouter.get(
         imageUrl: row.image_url,
         imagePublicId: row.image_public_id,
         isVisible: Boolean(row.is_visible),
-        displayOrder: row.display_order
+        displayOrder: row.display_order,
+        productCount: Number(row.product_count ?? 0)
       }))
     });
   })
