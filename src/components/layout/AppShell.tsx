@@ -35,7 +35,8 @@ const footerGroups = [
       { label: "New In", to: "/shop" },
       { label: "Men", to: "/shop/men" },
       { label: "Women", to: "/shop/women" },
-      { label: "Kids", to: "/shop/kids" }
+      { label: "Kids", to: "/shop/kids" },
+      { label: "Lifestyle", to: "/lifestyle" }
     ]
   },
   {
@@ -132,18 +133,21 @@ export function AppShell() {
     };
   }, []);
 
-  const primaryCategorySlugs = ["men", "women", "kids"];
+  const primaryCategorySlugs = ["men", "women", "kids", "lifestyle"];
   const menuCategories = primaryCategorySlugs
     .map((slug) => categories.find((category) => !category.parentId && category.slug === slug))
-    .filter((category): category is StoreCategory => Boolean(category));
+    .filter((category): category is StoreCategory => Boolean(category?.showInNavbar));
   const childrenFor = (parentId: string) => categories
-    .filter((category) => category.parentId === parentId)
+    .filter((category) => category.parentId === parentId && category.showInNavbar)
     .sort((left, right) => left.displayOrder - right.displayOrder);
-  const fixedNavLinks = navLinks.filter((link) => !["/shop/men", "/shop/women", "/shop/kids"].includes(link.to));
+  const fixedNavLinks = navLinks.filter((link) => !["/shop", "/shop/men", "/shop/women", "/shop/kids"].includes(link.to));
+  const categoryPath = (category: StoreCategory, childSlug?: string) => category.slug === "lifestyle"
+    ? `/lifestyle${childSlug ? `/${childSlug}` : ""}`
+    : `/shop/${category.slug}${childSlug ? `/${childSlug}` : ""}`;
   const headerNavLinks = [
-    fixedNavLinks[0],
-    ...menuCategories.map((category) => ({ label: category.name, to: `/shop/${category.slug}` })),
-    ...fixedNavLinks.slice(1)
+    navLinks[0],
+    ...menuCategories.map((category) => ({ label: category.name, to: categoryPath(category) })),
+    ...fixedNavLinks
   ].filter(Boolean) as typeof navLinks;
 
   useEffect(() => {
@@ -270,11 +274,11 @@ export function AppShell() {
                           >
                             <div className="mb-5 flex items-center justify-between border-b border-black/6 pb-4">
                               <div><p className="font-heading text-xl font-bold">Shop {category.name}</p><p className="text-xs text-brand-muted">Explore every collection</p></div>
-                              <Link to={`/shop/${category.slug}`} className="text-sm font-semibold text-brand-pink">View all →</Link>
+                              <Link to={categoryPath(category)} className="text-sm font-semibold text-brand-pink">View all →</Link>
                             </div>
                             <div className="grid grid-cols-3 gap-x-7 gap-y-1">
                               {children.map((child) => (
-                                <Link key={child.id} to={`/shop/${category.slug}/${child.slug}`} className="rounded-xl px-3 py-2.5 text-sm font-medium text-brand-charcoal/80 hover:bg-brand-soft hover:text-brand-black">
+                                <Link key={child.id} to={categoryPath(category, child.slug)} className="rounded-xl px-3 py-2.5 text-sm font-medium text-brand-charcoal/80 hover:bg-brand-soft hover:text-brand-black">
                                   {child.name}
                                 </Link>
                               ))}
@@ -406,8 +410,8 @@ export function AppShell() {
                             </div>
                             {open ? (
                               <div className="grid gap-1 border-t border-black/6 bg-white p-2">
-                                <Link to={`/shop/${category.slug}`} onClick={() => setMobileOpen(false)} className="rounded-xl px-3 py-2 text-sm font-semibold text-brand-pink">View all {category.name}</Link>
-                                {children.map((child) => <Link key={child.id} to={`/shop/${category.slug}/${child.slug}`} onClick={() => setMobileOpen(false)} className="rounded-xl px-3 py-2 text-sm text-brand-charcoal hover:bg-brand-soft">{child.name}</Link>)}
+                                <Link to={categoryPath(category)} onClick={() => setMobileOpen(false)} className="rounded-xl px-3 py-2 text-sm font-semibold text-brand-pink">View all {category.name}</Link>
+                                {children.map((child) => <Link key={child.id} to={categoryPath(category, child.slug)} onClick={() => setMobileOpen(false)} className="rounded-xl px-3 py-2 text-sm text-brand-charcoal hover:bg-brand-soft">{child.name}</Link>)}
                               </div>
                             ) : null}
                           </div>

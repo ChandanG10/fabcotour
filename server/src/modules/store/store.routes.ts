@@ -32,6 +32,11 @@ storeRouter.get(
         audience: row.audience,
         imageUrl: row.image_url,
         imagePublicId: row.image_public_id,
+        bannerUrl: row.banner_url,
+        bannerPublicId: row.banner_public_id,
+        showInNavbar: Boolean(row.show_in_navbar),
+        seoTitle: row.seo_title,
+        seoDescription: row.seo_description,
         isVisible: Boolean(row.is_visible),
         displayOrder: row.display_order,
         productCount: Number(row.product_count ?? 0)

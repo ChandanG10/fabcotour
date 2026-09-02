@@ -6,6 +6,7 @@ import { AdminAuthProvider, AdminEntryRedirect, ProtectedAdminRoute } from "../a
 
 const HomePage = lazy(() => import("../pages/HomePage"));
 const ShopPage = lazy(() => import("../pages/ShopPage"));
+const LifestylePage = lazy(() => import("../pages/LifestylePage"));
 const ProductPage = lazy(() => import("../pages/ProductPage"));
 const CustomizerPage = lazy(() => import("../pages/CustomizerPage"));
 const CustomDesignerPage = lazy(() => import("../pages/CustomDesignerPage"));
@@ -61,6 +62,8 @@ export function AppRouter() {
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/shop/:slug" element={<ShopPage />} />
           <Route path="/shop/:categorySlug/:subcategorySlug" element={<ShopPage />} />
+          <Route path="/lifestyle" element={<LifestylePage />} />
+          <Route path="/lifestyle/:subcategorySlug" element={<LifestylePage />} />
           <Route path="/product/:slug" element={<ProductPage />} />
           <Route path="/customise" element={<CustomizerPage />} />
           <Route path="/corporate-gifting" element={<CorporatePage />} />

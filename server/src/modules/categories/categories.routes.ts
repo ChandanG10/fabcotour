@@ -16,6 +16,11 @@ const categorySchema = z.object({
   audience: z.enum(["men", "women", "kids", "unisex", "business"]).default("unisex"),
   imageUrl: z.string().url().nullable().optional(),
   imagePublicId: z.string().nullable().optional(),
+  bannerUrl: z.string().url().nullable().optional(),
+  bannerPublicId: z.string().nullable().optional(),
+  showInNavbar: z.boolean().default(true),
+  seoTitle: z.string().trim().max(255).nullable().optional(),
+  seoDescription: z.string().trim().max(300).nullable().optional(),
   isVisible: z.boolean().default(true),
   displayOrder: z.coerce.number().int().min(0).max(100000).default(0)
 });
@@ -31,6 +36,11 @@ interface CategoryRow extends RowDataPacket {
   audience: "men" | "women" | "kids" | "unisex" | "business";
   image_url: string | null;
   image_public_id: string | null;
+  banner_url: string | null;
+  banner_public_id: string | null;
+  show_in_navbar: number;
+  seo_title: string | null;
+  seo_description: string | null;
   is_visible: number;
   display_order: number;
   created_at: string;
@@ -47,6 +57,11 @@ function mapCategory(row: CategoryRow) {
     audience: row.audience,
     imageUrl: row.image_url,
     imagePublicId: row.image_public_id,
+    bannerUrl: row.banner_url,
+    bannerPublicId: row.banner_public_id,
+    showInNavbar: Boolean(row.show_in_navbar),
+    seoTitle: row.seo_title,
+    seoDescription: row.seo_description,
     isVisible: Boolean(row.is_visible),
     displayOrder: row.display_order,
     productCount: Number((row as CategoryRow & { product_count?: number }).product_count ?? 0),
@@ -121,8 +136,9 @@ categoriesRouter.post(
     await assertUniqueSlug(payload.parentId ?? null, slug);
     await pool.query(
       `INSERT INTO categories (
-        id, parent_id, name, slug, description, audience, image_url, image_public_id, is_visible, display_order
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, parent_id, name, slug, description, audience, image_url, image_public_id,
+        banner_url, banner_public_id, show_in_navbar, seo_title, seo_description, is_visible, display_order
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         payload.parentId ?? null,
@@ -132,6 +148,11 @@ categoriesRouter.post(
         payload.audience,
         payload.imageUrl ?? null,
         payload.imagePublicId ?? null,
+        payload.bannerUrl ?? null,
+        payload.bannerPublicId ?? null,
+        payload.showInNavbar ? 1 : 0,
+        payload.seoTitle ?? null,
+        payload.seoDescription ?? null,
         payload.isVisible ? 1 : 0,
         payload.displayOrder
       ]
@@ -154,7 +175,8 @@ categoriesRouter.put(
     await assertUniqueSlug(payload.parentId ?? null, slug, String(request.params.id));
     await pool.query(
       `UPDATE categories
-       SET parent_id = ?, name = ?, slug = ?, description = ?, audience = ?, image_url = ?, image_public_id = ?, is_visible = ?, display_order = ?
+       SET parent_id = ?, name = ?, slug = ?, description = ?, audience = ?, image_url = ?, image_public_id = ?,
+           banner_url = ?, banner_public_id = ?, show_in_navbar = ?, seo_title = ?, seo_description = ?, is_visible = ?, display_order = ?
        WHERE id = ? AND deleted_at IS NULL`,
       [
         payload.parentId ?? null,
@@ -164,6 +186,11 @@ categoriesRouter.put(
         payload.audience,
         payload.imageUrl ?? null,
         payload.imagePublicId ?? null,
+        payload.bannerUrl ?? null,
+        payload.bannerPublicId ?? null,
+        payload.showInNavbar ? 1 : 0,
+        payload.seoTitle ?? null,
+        payload.seoDescription ?? null,
         payload.isVisible ? 1 : 0,
         payload.displayOrder,
         request.params.id
@@ -203,7 +230,7 @@ categoriesRouter.post("/:categoryId/subcategories", requireAdminAuth, asyncHandl
   const slug = normalizedSlug(payload.slug, payload.name);
   await assertUniqueSlug(parent.id, slug);
   const id = uuid();
-  await pool.query(`INSERT INTO categories (id,parent_id,name,slug,description,audience,image_url,image_public_id,is_visible,display_order) VALUES (?,?,?,?,?,?,?,?,?,?)`, [id,parent.id,payload.name,slug,payload.description ?? null,parent.audience,payload.imageUrl ?? null,payload.imagePublicId ?? null,payload.isVisible ? 1 : 0,payload.displayOrder]);
+  await pool.query(`INSERT INTO categories (id,parent_id,name,slug,description,audience,image_url,image_public_id,banner_url,banner_public_id,show_in_navbar,seo_title,seo_description,is_visible,display_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, [id,parent.id,payload.name,slug,payload.description ?? null,parent.audience,payload.imageUrl ?? null,payload.imagePublicId ?? null,payload.bannerUrl ?? null,payload.bannerPublicId ?? null,payload.showInNavbar ? 1 : 0,payload.seoTitle ?? null,payload.seoDescription ?? null,payload.isVisible ? 1 : 0,payload.displayOrder]);
   const [rows] = await pool.query<CategoryRow[]>("SELECT * FROM categories WHERE id=?", [id]);
   response.status(201).json({ item: mapCategory(rows[0]) });
 }));
@@ -215,7 +242,7 @@ subcategoriesRouter.put("/:id", asyncHandler(async (request, response) => {
   if (!current.parent_id) throw new HttpError(400, "This endpoint only edits subcategories.");
   const payload = categorySchema.parse({ ...request.body, parentId: request.body.parentId ?? current.parent_id, audience: request.body.audience ?? current.audience });
   const slug = normalizedSlug(payload.slug, payload.name); await validateParent(payload.parentId ?? current.parent_id, current.id); await assertUniqueSlug(payload.parentId ?? current.parent_id, slug, current.id);
-  await pool.query(`UPDATE categories SET parent_id=?,name=?,slug=?,description=?,audience=?,image_url=?,image_public_id=?,is_visible=?,display_order=? WHERE id=?`, [payload.parentId ?? current.parent_id,payload.name,slug,payload.description ?? null,payload.audience,payload.imageUrl ?? null,payload.imagePublicId ?? null,payload.isVisible ? 1 : 0,payload.displayOrder,current.id]);
+  await pool.query(`UPDATE categories SET parent_id=?,name=?,slug=?,description=?,audience=?,image_url=?,image_public_id=?,banner_url=?,banner_public_id=?,show_in_navbar=?,seo_title=?,seo_description=?,is_visible=?,display_order=? WHERE id=?`, [payload.parentId ?? current.parent_id,payload.name,slug,payload.description ?? null,payload.audience,payload.imageUrl ?? null,payload.imagePublicId ?? null,payload.bannerUrl ?? null,payload.bannerPublicId ?? null,payload.showInNavbar ? 1 : 0,payload.seoTitle ?? null,payload.seoDescription ?? null,payload.isVisible ? 1 : 0,payload.displayOrder,current.id]);
   const [rows] = await pool.query<CategoryRow[]>("SELECT * FROM categories WHERE id=?", [current.id]); response.json({ item: mapCategory(rows[0]) });
 }));
 subcategoriesRouter.patch("/:id/status", asyncHandler(async (request, response) => {

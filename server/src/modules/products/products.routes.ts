@@ -164,6 +164,14 @@ const productSchema = z.object({
   fit: z.string().nullable().optional(),
   gsm: z.string().nullable().optional(),
   printingMethod: z.string().nullable().optional(),
+  productType: z.string().trim().max(160).nullable().optional(),
+  material: z.string().trim().max(255).nullable().optional(),
+  dimensions: z.string().trim().max(255).nullable().optional(),
+  weight: z.string().trim().max(120).nullable().optional(),
+  careInstructions: z.string().nullable().optional(),
+  shippingInformation: z.string().nullable().optional(),
+  variantLabel: z.string().trim().max(80).nullable().optional(),
+  customProductId: z.string().uuid().nullable().optional(),
   seoTitle: z.string().nullable().optional(),
   seoMetaDescription: z.string().nullable().optional(),
   isBestseller: z.boolean().default(false),
@@ -217,6 +225,15 @@ interface ProductRow extends RowDataPacket {
   fit: string | null;
   gsm: string | null;
   printing_method: string | null;
+  product_type: string | null;
+  material: string | null;
+  dimensions: string | null;
+  weight: string | null;
+  care_instructions: string | null;
+  shipping_information: string | null;
+  variant_label: string | null;
+  custom_product_id: string | null;
+  custom_product_slug: string | null;
   seo_title: string | null;
   seo_meta_description: string | null;
   is_bestseller: number;
@@ -257,7 +274,9 @@ interface VariantRow extends RowDataPacket {
 
 async function fetchProductsByWhere(whereClause = "1=1", params: unknown[] = []) {
   const [products] = await pool.query<ProductRow[]>(
-    `SELECT * FROM products WHERE deleted_at IS NULL AND ${whereClause} ORDER BY created_at DESC`,
+    `SELECT p.*, (SELECT cp.slug FROM custom_products cp WHERE cp.id=p.custom_product_id AND cp.is_active=1 AND cp.deleted_at IS NULL LIMIT 1) AS custom_product_slug
+     FROM products p
+     WHERE p.deleted_at IS NULL AND ${whereClause} ORDER BY p.created_at DESC`,
     params
   );
 
@@ -297,6 +316,15 @@ async function fetchProductsByWhere(whereClause = "1=1", params: unknown[] = [])
     fit: product.fit,
     gsm: product.gsm,
     printingMethod: product.printing_method,
+    productType: product.product_type,
+    material: product.material,
+    dimensions: product.dimensions,
+    weight: product.weight,
+    careInstructions: product.care_instructions,
+    shippingInformation: product.shipping_information,
+    variantLabel: product.variant_label,
+    customProductId: product.custom_product_id,
+    customProductSlug: product.custom_product_slug,
     seoTitle: product.seo_title,
     seoMetaDescription: product.seo_meta_description,
     isBestseller: Boolean(product.is_bestseller),
@@ -408,7 +436,7 @@ async function assertProductTaxonomy(
   if (!category || category.parent_id) {
     throw new HttpError(400, "Choose a valid main category.");
   }
-  if (["men", "women", "kids"].includes(String(category.slug)) && !subcategoryId) {
+  if (["men", "women", "kids", "lifestyle"].includes(String(category.slug)) && !subcategoryId) {
     throw new HttpError(400, "Choose a subcategory for this product.");
   }
   if (subcategoryId && (!subcategory || String(subcategory.parent_id) !== categoryId)) {
@@ -527,9 +555,10 @@ productsRouter.post(
         `INSERT INTO products (
           id, category_id, subcategory_id, name, slug, sku, short_description, description, specifications,
           audience, price, original_price, gst_percent, stock, sizes, colors, fabric, fit, gsm,
-          printing_method, seo_title, seo_meta_description, is_bestseller, is_featured,
+          printing_method, product_type, material, dimensions, weight, care_instructions, shipping_information,
+          variant_label, custom_product_id, seo_title, seo_meta_description, is_bestseller, is_featured,
           is_new_arrival, is_customisable, is_archived, is_visible
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           payload.categoryId,
@@ -551,6 +580,14 @@ productsRouter.post(
           payload.fit ?? null,
           payload.gsm ?? null,
           payload.printingMethod ?? null,
+          payload.productType ?? null,
+          payload.material ?? null,
+          payload.dimensions ?? null,
+          payload.weight ?? null,
+          payload.careInstructions ?? null,
+          payload.shippingInformation ?? null,
+          payload.variantLabel ?? null,
+          payload.customProductId ?? null,
           payload.seoTitle ?? null,
           payload.seoMetaDescription ?? null,
           payload.isBestseller ? 1 : 0,
@@ -590,7 +627,9 @@ productsRouter.put(
         `UPDATE products
          SET category_id = ?, subcategory_id = ?, name = ?, slug = ?, sku = ?, short_description = ?, description = ?,
              specifications = ?, audience = ?, price = ?, original_price = ?, gst_percent = ?, stock = ?, sizes = ?,
-             colors = ?, fabric = ?, fit = ?, gsm = ?, printing_method = ?, seo_title = ?, seo_meta_description = ?,
+             colors = ?, fabric = ?, fit = ?, gsm = ?, printing_method = ?, product_type = ?, material = ?,
+             dimensions = ?, weight = ?, care_instructions = ?, shipping_information = ?, variant_label = ?,
+             custom_product_id = ?, seo_title = ?, seo_meta_description = ?,
              is_bestseller = ?, is_featured = ?, is_new_arrival = ?, is_customisable = ?, is_archived = ?, is_visible = ?
          WHERE id = ?`,
         [
@@ -613,6 +652,14 @@ productsRouter.put(
           payload.fit ?? null,
           payload.gsm ?? null,
           payload.printingMethod ?? null,
+          payload.productType ?? null,
+          payload.material ?? null,
+          payload.dimensions ?? null,
+          payload.weight ?? null,
+          payload.careInstructions ?? null,
+          payload.shippingInformation ?? null,
+          payload.variantLabel ?? null,
+          payload.customProductId ?? null,
           payload.seoTitle ?? null,
           payload.seoMetaDescription ?? null,
           payload.isBestseller ? 1 : 0,

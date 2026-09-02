@@ -121,7 +121,7 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="flex flex-1 flex-col p-3 transition duration-500 ease-luxe group-hover:-translate-y-1 md:p-5">
         <div className="min-h-10 md:min-h-[8.5rem]">
           <div className="hidden min-h-7 items-center justify-between gap-3 md:flex">
-            <p className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-muted">FabCoutur</p>
+            <p className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-[0.22em] text-brand-muted">FabPodd</p>
             {product.customisable ? (
               <span className="shrink-0 rounded-full bg-brand-soft px-3 py-1 text-[11px] font-semibold text-brand-charcoal">
                 Customisable

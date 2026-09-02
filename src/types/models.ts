@@ -71,6 +71,7 @@ export interface Product {
   slug: string;
   audience: Array<"men" | "women" | "kids" | "unisex">;
   categoryId: string;
+  mainCategorySlug?: string;
   subcategoryId?: string | null;
   subcategory: string;
   price: number;
@@ -83,6 +84,9 @@ export interface Product {
   gsm: string;
   badge?: "Bestseller" | "New";
   customisable: boolean;
+  featured?: boolean;
+  newArrival?: boolean;
+  bestseller?: boolean;
   printMethods: string[];
   images: string[];
   imageAssets?: ProductImageAsset[];
@@ -95,6 +99,11 @@ export interface Product {
   printingCompatibility: string[];
   care: string[];
   delivery: string;
+  productType?: string | null;
+  dimensions?: string | null;
+  weight?: string | null;
+  variantLabel?: string | null;
+  customProductSlug?: string | null;
   returns: string;
   offers: string[];
   variants: ProductVariant[];

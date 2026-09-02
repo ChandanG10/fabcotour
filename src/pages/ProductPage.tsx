@@ -99,12 +99,13 @@ export default function ProductPage() {
     product.variants.find((variant) => variant.size === selectedSize && variant.color === selectedColor) ??
     product.variants[0];
   const primaryAudience = product.audience[0] ?? "unisex";
+  const isLifestyle = product.mainCategorySlug === "lifestyle";
   const summaryCopy =
     product.description.split(/(?<=[.!?])\s+/)[0]?.trim() || product.description;
   const metaHighlights = [
-    product.fabric ? `${product.fabric}` : "",
-    product.fit ? `${product.fit} fit` : "",
-    product.gsm ? `${product.gsm} GSM` : "",
+    product.material ? product.material : "",
+    isLifestyle ? product.dimensions ?? "" : product.fit ? `${product.fit} fit` : "",
+    isLifestyle ? product.weight ?? "" : product.gsm ? `${product.gsm} GSM` : "",
     product.printMethods[0] ? product.printMethods[0] : ""
   ].filter(Boolean);
   const structuredData = {
@@ -140,7 +141,8 @@ export default function ProductPage() {
           items={[
             { label: "Home", to: "/" },
             { label: "Shop", to: "/shop" },
-            { label: product.subcategory, to: `/shop/${primaryAudience}` },
+            { label: isLifestyle ? "Lifestyle" : product.subcategory, to: isLifestyle ? "/lifestyle" : `/shop/${primaryAudience}` },
+            ...(isLifestyle ? [{ label: product.subcategory, to: product.subcategoryId ? undefined : "/lifestyle" }] : []),
             { label: product.name }
           ]}
         />
@@ -255,7 +257,7 @@ export default function ProductPage() {
               </div>
 
               <div className="mt-5">
-                <p className="text-sm font-semibold">Size</p>
+                <p className="text-sm font-semibold">{isLifestyle ? product.variantLabel || "Option" : "Size"}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {product.sizeOptions.map((size) => (
                     <button
@@ -347,9 +349,9 @@ export default function ProductPage() {
                   <Heart className={`mr-2 h-4 w-4 ${wished ? "fill-brand-pink text-brand-pink" : ""}`} />
                   Add to Wishlist
                 </button>
-                <Link to={`/customise?product=${product.id}`} className="button-secondary">
-                  Customise This Product
-                </Link>
+                {product.customisable ? (
+                  product.customProductSlug ? <Link to={`/customise/${product.customProductSlug}/design`} className="button-secondary">Customise Now</Link> : <Link to="/customise" className="button-secondary">Find a customisable version</Link>
+                ) : null}
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -383,11 +385,14 @@ export default function ProductPage() {
 
               <aside className="bg-brand-soft/70 p-6 sm:p-8">
                 <section>
-                  <h3 className="font-heading text-2xl font-bold text-brand-black">Material and fit</h3>
+                  <h3 className="font-heading text-2xl font-bold text-brand-black">{isLifestyle ? "Product specifications" : "Material and fit"}</h3>
                   <dl className="mt-5 space-y-4">
                     <InfoDefinition label="Material" value={product.material} />
-                    <InfoDefinition label="Fit" value={product.fit} />
-                    <InfoDefinition label="Fabric" value={product.fabric} />
+                    {isLifestyle ? <>
+                      {product.productType ? <InfoDefinition label="Product type" value={product.productType} /> : null}
+                      {product.dimensions ? <InfoDefinition label="Dimensions" value={product.dimensions} /> : null}
+                      {product.weight ? <InfoDefinition label="Weight" value={product.weight} /> : null}
+                    </> : <><InfoDefinition label="Fit" value={product.fit} /><InfoDefinition label="Fabric" value={product.fabric} /></>}
                   </dl>
                 </section>
 

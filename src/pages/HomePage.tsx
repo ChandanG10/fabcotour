@@ -13,6 +13,7 @@ import menCategoryImage from "../assets/home/categories/men-category.png";
 import womenCategoryImage from "../assets/home/categories/women-category.png";
 import kidsCategoryImage from "../assets/home/categories/kids-category.png";
 import corporateGiftsCategoryImage from "../assets/home/categories/corporate-gifts-category.png";
+import lifestyleCategoryImage from "../assets/home/categories/lifestyle-category.png";
 
 const customisationSteps = [
   {
@@ -65,7 +66,8 @@ export default function HomePage() {
   }
 
   const { homepage, categories, allProducts, featuredProducts, newArrivalProducts } = data;
-  const categoryCards = homepage.categoryCards.length
+  const lifestyleCategory = categories.find((category) => !category.parentId && category.slug === "lifestyle");
+  const configuredCategoryCards = homepage.categoryCards.length
     ? homepage.categoryCards
         .slice()
         .sort((left, right) => left.sortOrder - right.sortOrder)
@@ -82,6 +84,18 @@ export default function HomePage() {
         { label: "KIDS", to: "/shop/kids", image: kidsCategoryImage, alt: "Kids category image", expectedPath: "src/assets/home/categories/kids-category.png" },
         { label: "CORPORATE GIFTS", to: "/corporate-gifting", image: corporateGiftsCategoryImage, alt: "Corporate gifts category image", expectedPath: "src/assets/home/categories/corporate-gifts-category.png" }
       ];
+  const hydratedCategoryCards = configuredCategoryCards.map((card) => card.to === "/lifestyle" || card.label.toLowerCase() === "lifestyle"
+    ? { ...card, to: "/lifestyle", image: card.image || lifestyleCategory?.imageUrl || lifestyleCategoryImage, expectedPath: "src/assets/home/categories/lifestyle-category.png" }
+    : card);
+  const categoryCards = hydratedCategoryCards.some((card) => card.to === "/lifestyle" || card.label.toLowerCase() === "lifestyle")
+    ? hydratedCategoryCards
+    : [...hydratedCategoryCards, {
+        label: "LIFESTYLE",
+        to: "/lifestyle",
+        image: lifestyleCategory?.imageUrl || lifestyleCategoryImage,
+        alt: "Personalised Lifestyle essentials including a tote, bottle, mug and notebook",
+        expectedPath: "src/assets/home/categories/lifestyle-category.png"
+      }];
 
   const menEdit = allProducts.filter((product) => product.audience.includes("men")).slice(0, 4);
   const womenEdit = allProducts.filter((product) => product.audience.includes("women")).slice(0, 4);

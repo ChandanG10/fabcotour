@@ -29,7 +29,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoadingState } from "../../components/common/Ui";
-import { adminService } from "../../services/api";
+import { adminService, customisationService } from "../../services/api";
 import { ApiError } from "../../lib/http";
 import { useAdminAuth } from "../AdminAuth";
 import type { HomepagePayload, StoreCategory, StoreProduct } from "../../lib/storefront";
@@ -61,6 +61,16 @@ type UploadedImage = {
   isVariantPrimary: boolean;
 };
 
+type EditableVariant = {
+  id?: string;
+  sku: string;
+  color: string | null;
+  colorHex: string | null;
+  size: string | null;
+  stock: number;
+  priceAdjustment: number;
+};
+
 type ProductFormState = {
   id?: string;
   categoryId: string;
@@ -82,6 +92,14 @@ type ProductFormState = {
   fit: string;
   gsm: string;
   printingMethod: string;
+  productType: string;
+  material: string;
+  dimensions: string;
+  weight: string;
+  careInstructions: string;
+  shippingInformation: string;
+  variantLabel: string;
+  customProductId: string;
   seoTitle: string;
   seoMetaDescription: string;
   isBestseller: boolean;
@@ -91,7 +109,7 @@ type ProductFormState = {
   isArchived: boolean;
   isVisible: boolean;
   images: UploadedImage[];
-  variants: StoreProduct["variants"];
+  variants: EditableVariant[];
 };
 
 type CategoryFormState = {
@@ -103,6 +121,11 @@ type CategoryFormState = {
   audience: "men" | "women" | "kids" | "unisex" | "business";
   imageUrl: string;
   imagePublicId: string;
+  bannerUrl: string;
+  bannerPublicId: string;
+  showInNavbar: boolean;
+  seoTitle: string;
+  seoDescription: string;
   isVisible: boolean;
   displayOrder: string;
 };
@@ -183,6 +206,14 @@ const defaultProductForm = (): ProductFormState => ({
   fit: "",
   gsm: "",
   printingMethod: "",
+  productType: "",
+  material: "",
+  dimensions: "",
+  weight: "",
+  careInstructions: "",
+  shippingInformation: "",
+  variantLabel: "Size",
+  customProductId: "",
   seoTitle: "",
   seoMetaDescription: "",
   isBestseller: false,
@@ -203,6 +234,11 @@ const defaultCategoryForm = (): CategoryFormState => ({
   audience: "unisex",
   imageUrl: "",
   imagePublicId: "",
+  bannerUrl: "",
+  bannerPublicId: "",
+  showInNavbar: true,
+  seoTitle: "",
+  seoDescription: "",
   isVisible: true,
   displayOrder: "0"
 });
@@ -306,6 +342,14 @@ function toProductForm(product: StoreProduct): ProductFormState {
     fit: product.fit ?? "",
     gsm: product.gsm ?? "",
     printingMethod: product.printingMethod ?? "",
+    productType: product.productType ?? "",
+    material: product.material ?? "",
+    dimensions: product.dimensions ?? "",
+    weight: product.weight ?? "",
+    careInstructions: product.careInstructions ?? "",
+    shippingInformation: product.shippingInformation ?? "",
+    variantLabel: product.variantLabel ?? "Size",
+    customProductId: product.customProductId ?? "",
     seoTitle: product.seoTitle ?? "",
     seoMetaDescription: product.seoMetaDescription ?? "",
     isBestseller: product.isBestseller,
@@ -340,6 +384,11 @@ function toCategoryForm(category: StoreCategory): CategoryFormState {
     audience: category.audience,
     imageUrl: category.imageUrl ?? "",
     imagePublicId: category.imagePublicId ?? "",
+    bannerUrl: category.bannerUrl ?? "",
+    bannerPublicId: category.bannerPublicId ?? "",
+    showInNavbar: category.showInNavbar,
+    seoTitle: category.seoTitle ?? "",
+    seoDescription: category.seoDescription ?? "",
     isVisible: category.isVisible,
     displayOrder: String(category.displayOrder)
   };
@@ -378,6 +427,7 @@ export default function AdminDashboardPage() {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
   const [quickSubcategoryForm, setQuickSubcategoryForm] = useState<QuickSubcategoryFormState>(defaultQuickSubcategoryForm());
   const [skuGenerating, setSkuGenerating] = useState(false);
+  const [customisationProducts, setCustomisationProducts] = useState<Awaited<ReturnType<typeof customisationService.getProducts>>>([]);
 
   const categories = useMemo(() => categoriesData?.items ?? [], [categoriesData?.items]);
   const parentCategoryOptions = useMemo(() => categories.filter((category) => !category.parentId), [categories]);
@@ -476,6 +526,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (admin) {
       authFailureHandledRef.current = false;
+      void customisationService.getProducts().then(setCustomisationProducts).catch(() => setCustomisationProducts([]));
     }
   }, [admin]);
 
@@ -672,12 +723,39 @@ export default function AdminDashboardPage() {
     });
   };
 
+  const moveProductImage = async (imageIndex: number, direction: -1 | 1) => {
+    const destination = imageIndex + direction;
+    if (destination < 0 || destination >= productForm.images.length) return;
+    const reordered = [...productForm.images];
+    [reordered[imageIndex], reordered[destination]] = [reordered[destination], reordered[imageIndex]];
+    const images = reordered.map((image, index) => ({ ...image, sortOrder: index }));
+    setProductForm((state) => ({ ...state, images }));
+
+    if (productForm.id && images.every((image) => image.id)) {
+      await runAction("reorder-images", async () => {
+        await adminService.reorderProductImages(productForm.id as string, images.map((image) => ({
+          id: image.id as string,
+          sortOrder: image.sortOrder,
+          isPrimary: image.isPrimary
+        })));
+        toast.success("Image order saved.");
+      });
+    }
+  };
+
+  const updateProductVariant = (variantIndex: number, patch: Partial<EditableVariant>) => {
+    setProductForm((state) => ({
+      ...state,
+      variants: state.variants.map((variant, index) => index === variantIndex ? { ...variant, ...patch } : variant)
+    }));
+  };
+
   const submitProduct = async () => {
     if (!productForm.categoryId) {
       toast.error("Choose a main category.");
       return;
     }
-    if (["men", "women", "kids"].includes(selectedParentCategory?.slug ?? "") && !productForm.subcategoryId) {
+    if (["men", "women", "kids", "lifestyle"].includes(selectedParentCategory?.slug ?? "") && !productForm.subcategoryId) {
       toast.error("Choose a subcategory for this product.");
       return;
     }
@@ -705,6 +783,14 @@ export default function AdminDashboardPage() {
       fit: productForm.fit || null,
       gsm: productForm.gsm || null,
       printingMethod: productForm.printingMethod || null,
+      productType: productForm.productType || null,
+      material: productForm.material || null,
+      dimensions: productForm.dimensions || null,
+      weight: productForm.weight || null,
+      careInstructions: productForm.careInstructions || null,
+      shippingInformation: productForm.shippingInformation || null,
+      variantLabel: productForm.variantLabel || null,
+      customProductId: productForm.customProductId || null,
       seoTitle: productForm.seoTitle || null,
       seoMetaDescription: productForm.seoMetaDescription || null,
       isBestseller: productForm.isBestseller,
@@ -765,6 +851,11 @@ export default function AdminDashboardPage() {
       audience: categoryForm.audience,
       imageUrl: categoryForm.imageUrl || null,
       imagePublicId: categoryForm.imagePublicId || null,
+      bannerUrl: categoryForm.bannerUrl || null,
+      bannerPublicId: categoryForm.bannerPublicId || null,
+      showInNavbar: categoryForm.showInNavbar,
+      seoTitle: categoryForm.seoTitle || null,
+      seoDescription: categoryForm.seoDescription || null,
       isVisible: categoryForm.isVisible,
       displayOrder: Number(categoryForm.displayOrder || 0)
     };
@@ -883,6 +974,11 @@ export default function AdminDashboardPage() {
     audience: category.audience,
     imageUrl: category.imageUrl,
     imagePublicId: category.imagePublicId,
+    bannerUrl: category.bannerUrl,
+    bannerPublicId: category.bannerPublicId,
+    showInNavbar: category.showInNavbar,
+    seoTitle: category.seoTitle,
+    seoDescription: category.seoDescription,
     isVisible: category.isVisible,
     displayOrder: category.displayOrder,
     ...overrides
@@ -1423,7 +1519,7 @@ export default function AdminDashboardPage() {
                         <span className="rounded-full bg-[#f8f1e3] px-3 py-1 text-xs font-semibold text-brand-black">Storefront filters</span>
                       </div>
                       <div className="mt-4 grid gap-4 md:grid-cols-2">
-                        <Field label="Sizes"><input value={productForm.sizes} onChange={(event) => setProductForm((state) => ({ ...state, sizes: event.target.value }))} placeholder="S, M, L, XL" className={inputClass} /></Field>
+                        <Field label={selectedParentCategory?.slug === "lifestyle" ? "Sizes, capacities or models" : "Sizes"}><input value={productForm.sizes} onChange={(event) => setProductForm((state) => ({ ...state, sizes: event.target.value }))} placeholder={selectedParentCategory?.slug === "lifestyle" ? "500 ml, 750 ml or A5, A4" : "S, M, L, XL"} className={inputClass} /></Field>
                         <Field label="Colours"><input value={productForm.colors} onChange={(event) => setProductForm((state) => ({ ...state, colors: event.target.value }))} placeholder="Black, White, Cream" className={inputClass} /></Field>
                         <Field label="Fabric"><input value={productForm.fabric} onChange={(event) => setProductForm((state) => ({ ...state, fabric: event.target.value }))} placeholder="Cotton, Terry, Linen" className={inputClass} /></Field>
                         <Field label="Fit"><input value={productForm.fit} onChange={(event) => setProductForm((state) => ({ ...state, fit: event.target.value }))} placeholder="Oversized, Regular, Relaxed" className={inputClass} /></Field>
@@ -1431,6 +1527,22 @@ export default function AdminDashboardPage() {
                         <Field label="GSM"><input value={productForm.gsm} onChange={(event) => setProductForm((state) => ({ ...state, gsm: event.target.value }))} placeholder="180, 220" className={inputClass} /></Field>
                       </div>
                     </div>
+                    {selectedParentCategory?.slug === "lifestyle" ? (
+                      <div className="md:col-span-2 rounded-[24px] border border-black/8 bg-white px-4 py-4">
+                        <h4 className="text-sm font-semibold">Lifestyle product details</h4>
+                        <p className="mt-1 text-sm text-brand-black/58">Use the variant label for the selector customers see, such as Capacity, Model or Notebook size. Link an existing Customisation product to open its configured mockups and print areas.</p>
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                          <Field label="Product type"><input value={productForm.productType} onChange={(event) => setProductForm((state) => ({ ...state, productType: event.target.value }))} placeholder="Ceramic Mug" className={inputClass} /></Field>
+                          <Field label="Variant label"><input value={productForm.variantLabel} onChange={(event) => setProductForm((state) => ({ ...state, variantLabel: event.target.value }))} placeholder="Capacity" className={inputClass} /></Field>
+                          <Field label="Material"><input value={productForm.material} onChange={(event) => setProductForm((state) => ({ ...state, material: event.target.value }))} placeholder="Glazed ceramic" className={inputClass} /></Field>
+                          <Field label="Dimensions"><input value={productForm.dimensions} onChange={(event) => setProductForm((state) => ({ ...state, dimensions: event.target.value }))} placeholder="9 × 8 cm" className={inputClass} /></Field>
+                          <Field label="Weight"><input value={productForm.weight} onChange={(event) => setProductForm((state) => ({ ...state, weight: event.target.value }))} placeholder="320 g" className={inputClass} /></Field>
+                          <Field label="Customisation product"><select value={productForm.customProductId} onChange={(event) => setProductForm((state) => ({ ...state, customProductId: event.target.value }))} className={inputClass}><option value="">Not linked</option>{customisationProducts.map((product) => <option key={product.id} value={product.id}>{product.name} · {product.categoryName}</option>)}</select></Field>
+                          <Field label="Care instructions"><textarea value={productForm.careInstructions} onChange={(event) => setProductForm((state) => ({ ...state, careInstructions: event.target.value }))} rows={3} className={textareaClass} /></Field>
+                          <Field label="Shipping information"><textarea value={productForm.shippingInformation} onChange={(event) => setProductForm((state) => ({ ...state, shippingInformation: event.target.value }))} rows={3} className={textareaClass} /></Field>
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="md:col-span-2">
                       <Field label="Short Description"><textarea value={productForm.shortDescription} onChange={(event) => setProductForm((state) => ({ ...state, shortDescription: event.target.value }))} rows={2} className={textareaClass} /></Field>
                     </div>
@@ -1520,23 +1632,23 @@ export default function AdminDashboardPage() {
                               />
                               Storefront primary
                             </label>
-                            <div className="grid min-w-0 grid-cols-2 gap-2">
+                            <Field label="Image alt text" hint="Used by screen readers and search engines">
+                              <input value={image.altText ?? ""} onChange={(event) => updateProductImage(index, { altText: event.target.value || null })} placeholder={productForm.name || "Describe this product image"} className={inputClass} />
+                            </Field>
+                            <div className="grid min-w-0 grid-cols-3 gap-2">
                               <IconButton
-                                icon={ArrowLeftRight}
-                                label="Move"
+                                icon={ArrowUp}
+                                label="Earlier"
                                 className="w-full justify-center"
-                                onClick={() =>
-                                  setProductForm((state) => {
-                                    const next = [...state.images];
-                                    if (index > 0) {
-                                      [next[index - 1], next[index]] = [next[index], next[index - 1]];
-                                    }
-                                    return {
-                                      ...state,
-                                      images: next.map((entry, entryIndex) => ({ ...entry, sortOrder: entryIndex }))
-                                    };
-                                  })
-                                }
+                                disabled={index === 0 || busy === "reorder-images"}
+                                onClick={() => void moveProductImage(index, -1)}
+                              />
+                              <IconButton
+                                icon={ArrowDown}
+                                label="Later"
+                                className="w-full justify-center"
+                                disabled={index === productForm.images.length - 1 || busy === "reorder-images"}
+                                onClick={() => void moveProductImage(index, 1)}
                               />
                               <IconButton
                                 icon={Trash2}
@@ -1549,10 +1661,10 @@ export default function AdminDashboardPage() {
                                     }
                                     setProductForm((state) => ({
                                       ...state,
-                                      images: state.images.filter((_, entryIndex) => entryIndex !== index).map((entry, entryIndex) => ({
+                                      images: state.images.filter((_, entryIndex) => entryIndex !== index).map((entry, entryIndex, remaining) => ({
                                         ...entry,
                                         sortOrder: entryIndex,
-                                        isPrimary: entry.isPrimary && index !== entryIndex
+                                        isPrimary: entry.isPrimary || (!remaining.some((candidate) => candidate.isPrimary) && entryIndex === 0)
                                       }))
                                     }));
                                   })
@@ -1634,6 +1746,48 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
+                  <div className="mt-6 rounded-[24px] border border-black/8 bg-white p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold">Inventory variants</h3>
+                        <p className="mt-1 text-sm text-brand-black/58">Every saved variant field is editable here: SKU, colour, colour code, {selectedParentCategory?.slug === "lifestyle" ? "capacity/model" : "size"}, stock and price adjustment.</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold"
+                        onClick={() => setProductForm((state) => ({
+                          ...state,
+                          variants: [...state.variants, {
+                            id: crypto.randomUUID(),
+                            sku: `${state.sku || "PRODUCT"}-VAR-${state.variants.length + 1}`,
+                            color: splitCommaLines(state.colors)[0] ?? null,
+                            colorHex: null,
+                            size: splitCommaLines(state.sizes)[0] ?? null,
+                            stock: 0,
+                            priceAdjustment: 0
+                          }]
+                        }))}
+                      >
+                        <Plus className="h-4 w-4" /> Add variant
+                      </button>
+                    </div>
+                    {productForm.variants.length ? (
+                      <div className="mt-4 space-y-3">
+                        {productForm.variants.map((variant, index) => (
+                          <div key={variant.id ?? `variant-${index}`} className="grid gap-3 rounded-[18px] bg-brand-offwhite p-3 md:grid-cols-2 xl:grid-cols-[1.4fr_1fr_0.8fr_1fr_0.7fr_0.8fr_auto] xl:items-end">
+                            <Field label="Variant SKU"><input value={variant.sku} onChange={(event) => updateProductVariant(index, { sku: event.target.value.toUpperCase() })} className={inputClass} /></Field>
+                            <Field label="Colour"><input value={variant.color ?? ""} onChange={(event) => updateProductVariant(index, { color: event.target.value || null })} className={inputClass} /></Field>
+                            <Field label="Hex"><input value={variant.colorHex ?? ""} onChange={(event) => updateProductVariant(index, { colorHex: event.target.value || null })} placeholder="#000000" className={inputClass} /></Field>
+                            <Field label={selectedParentCategory?.slug === "lifestyle" ? productForm.variantLabel || "Option" : "Size"}><input value={variant.size ?? ""} onChange={(event) => updateProductVariant(index, { size: event.target.value || null })} className={inputClass} /></Field>
+                            <Field label="Stock"><input type="number" min="0" value={variant.stock} onChange={(event) => updateProductVariant(index, { stock: Math.max(0, Number(event.target.value) || 0) })} className={inputClass} /></Field>
+                            <Field label="Price adjustment"><input type="number" min="0" step="0.01" value={variant.priceAdjustment} onChange={(event) => updateProductVariant(index, { priceAdjustment: Math.max(0, Number(event.target.value) || 0) })} className={inputClass} /></Field>
+                            <IconButton icon={Trash2} label="Remove" className="w-full justify-center" onClick={() => setProductForm((state) => ({ ...state, variants: state.variants.filter((_, variantIndex) => variantIndex !== index) }))} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="mt-4 rounded-[18px] border border-dashed border-black/12 px-4 py-6 text-center text-sm text-brand-black/58">No inventory variants. Add one when stock or pricing differs by colour, size, capacity or model.</p>}
+                  </div>
+
                   <div className="mt-6 flex flex-wrap gap-3">
                     <button type="button" className="min-h-11 rounded-full bg-brand-black px-5 py-3 text-sm font-semibold text-white" onClick={() => void submitProduct()}>
                       {busy === "save-product" ? "Saving..." : productForm.id ? "Update Product" : "Create Product"}
@@ -1676,7 +1830,7 @@ export default function AdminDashboardPage() {
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
                                     <p className="font-semibold">{subcategory.name}</p>
-                                    <span className={subcategory.isVisible ? "rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700" : "rounded-full bg-stone-100 px-2 py-1 text-[11px] font-semibold text-stone-600"}>{subcategory.isVisible ? "Active" : "Inactive"}</span>
+                                    <span className={subcategory.isVisible ? "rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700" : "rounded-full bg-brand-navy/8 px-2 py-1 text-[11px] font-semibold text-brand-navy/70"}>{subcategory.isVisible ? "Active" : "Inactive"}</span>
                                   </div>
                                   <p className="mt-1 text-xs text-brand-black/52">/{subcategory.slug} · {subcategory.productCount ?? 0} products · order {subcategory.displayOrder}</p>
                                 </div>
@@ -1735,10 +1889,16 @@ export default function AdminDashboardPage() {
                       </select>
                     </Field>
                     <Field label="Description"><textarea value={categoryForm.description} onChange={(event) => setCategoryForm((state) => ({ ...state, description: event.target.value }))} rows={3} className={textareaClass} /></Field>
+                    <Field label="SEO Title"><input value={categoryForm.seoTitle} onChange={(event) => setCategoryForm((state) => ({ ...state, seoTitle: event.target.value }))} maxLength={255} className={inputClass} /></Field>
+                    <Field label="SEO Description"><textarea value={categoryForm.seoDescription} onChange={(event) => setCategoryForm((state) => ({ ...state, seoDescription: event.target.value }))} maxLength={300} rows={3} className={textareaClass} /></Field>
                     <Field label="Display Order"><input value={categoryForm.displayOrder} onChange={(event) => setCategoryForm((state) => ({ ...state, displayOrder: event.target.value }))} className={inputClass} /></Field>
                     <label className="flex items-center gap-3 rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm font-medium">
                       <input type="checkbox" checked={categoryForm.isVisible} onChange={(event) => setCategoryForm((state) => ({ ...state, isVisible: event.target.checked }))} />
                       Visible on storefront
+                    </label>
+                    <label className="flex items-center gap-3 rounded-2xl border border-black/8 bg-white px-4 py-3 text-sm font-medium">
+                      <input type="checkbox" checked={categoryForm.showInNavbar} onChange={(event) => setCategoryForm((state) => ({ ...state, showInNavbar: event.target.checked }))} />
+                      Show in navigation
                     </label>
                     <div className="rounded-[24px] border border-dashed border-black/14 bg-white p-4">
                       <div className="flex items-center justify-between gap-3">
@@ -1753,6 +1913,13 @@ export default function AdminDashboardPage() {
                         </label>
                       </div>
                       {categoryForm.imageUrl ? <img src={categoryForm.imageUrl} alt="Category" className="mt-4 aspect-[16/10] w-full rounded-[20px] object-cover" /> : null}
+                    </div>
+                    <div className="rounded-[24px] border border-dashed border-black/14 bg-white p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div><p className="text-sm font-semibold">Category Banner</p><p className="text-sm text-brand-black/58">Used as the full-width Lifestyle hero image.</p></div>
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-black/10 px-4 py-2.5 text-sm font-semibold"><ImagePlus className="h-4 w-4" />Upload<input type="file" accept={imageUploadAccept} className="hidden" onChange={(event) => void handleImageUpload(event.target.files, (uploads) => setCategoryForm((state) => ({ ...state, bannerUrl: uploads[0]?.imageUrl ?? "", bannerPublicId: uploads[0]?.publicId ?? "" })))} /></label>
+                      </div>
+                      {categoryForm.bannerUrl ? <img src={categoryForm.bannerUrl} alt="Category banner" className="mt-4 aspect-[16/6] w-full rounded-[20px] object-cover" /> : null}
                     </div>
                   </div>
                   <div className="mt-6 flex gap-3">
@@ -2296,15 +2463,17 @@ function IconButton({
   icon: Icon,
   label,
   onClick,
+  disabled = false,
   className = ""
 }: {
   icon: typeof Pencil;
   label: string;
   onClick: () => void;
+  disabled?: boolean;
   className?: string;
 }) {
   return (
-    <button type="button" className={`inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-semibold ${className}`} onClick={onClick}>
+    <button type="button" disabled={disabled} className={`inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-35 ${className}`} onClick={onClick}>
       <Icon className="h-3.5 w-3.5" />
       {label}
     </button>

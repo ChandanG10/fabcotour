@@ -9,6 +9,11 @@ export interface StoreCategory {
   audience: "men" | "women" | "kids" | "unisex" | "business";
   imageUrl: string | null;
   imagePublicId: string | null;
+  bannerUrl: string | null;
+  bannerPublicId: string | null;
+  showInNavbar: boolean;
+  seoTitle: string | null;
+  seoDescription: string | null;
   isVisible: boolean;
   displayOrder: number;
   productCount?: number;
@@ -58,6 +63,15 @@ export interface StoreProduct {
   fit: string | null;
   gsm: string | null;
   printingMethod: string | null;
+  productType: string | null;
+  material: string | null;
+  dimensions: string | null;
+  weight: string | null;
+  careInstructions: string | null;
+  shippingInformation: string | null;
+  variantLabel: string | null;
+  customProductId: string | null;
+  customProductSlug: string | null;
   seoTitle: string | null;
   seoMetaDescription: string | null;
   isBestseller: boolean;
@@ -261,6 +275,7 @@ export function normalizeProduct(product: StoreProduct, categories: StoreCategor
     : buildFallbackVariants(product, gallery, colors, sizes);
 
   const category = safeCategories.find((entry) => entry.id === product.subcategoryId || entry.id === product.categoryId);
+  const mainCategory = safeCategories.find((entry) => entry.id === product.categoryId);
   const audienceList =
     product.audience === "unisex" || product.audience === "business"
       ? (["unisex"] as Array<"men" | "women" | "kids" | "unisex">)
@@ -272,18 +287,22 @@ export function normalizeProduct(product: StoreProduct, categories: StoreCategor
     slug: product.slug,
     audience: audienceList,
     categoryId: product.categoryId,
+    mainCategorySlug: mainCategory?.slug,
     subcategoryId: product.subcategoryId,
     subcategory: category?.name ?? product.audience.toUpperCase(),
     price: Number(product.price),
     originalPrice: product.originalPrice == null ? Number(product.price) : Number(product.originalPrice),
     rating: 4.6,
     reviewCount: 0,
-    material: product.fabric ?? "Premium fabric",
+    material: product.material ?? product.fabric ?? "Premium construction",
     fabric: product.fabric ?? "Premium fabric",
     fit: product.fit ?? "Regular",
     gsm: product.gsm ?? "240",
     badge: product.isBestseller ? "Bestseller" : product.isNewArrival ? "New" : undefined,
     customisable: product.isCustomisable,
+    featured: product.isFeatured,
+    newArrival: product.isNewArrival,
+    bestseller: product.isBestseller,
     printMethods: product.printingMethod ? [product.printingMethod] : ["Direct-to-garment"],
     images: gallery.length ? gallery : [""],
     imageAssets: images.map((image) => ({
@@ -311,8 +330,13 @@ export function normalizeProduct(product: StoreProduct, categories: StoreCategor
           "Quality checked before dispatch"
         ],
     printingCompatibility: product.printingMethod ? [product.printingMethod] : ["Direct-to-garment", "Embroidery"],
-    care: ["Wash inside out with similar colours", "Avoid bleach and harsh detergents", "Cool iron away from print areas"],
-    delivery: "Dispatch in 3-5 working days. Rush options available for selected SKUs.",
+    care: product.careInstructions ? product.careInstructions.split(/\n+/).filter(Boolean) : ["Follow the care instructions supplied with the product"],
+    delivery: product.shippingInformation ?? "Dispatch in 3-5 working days. Rush options available for selected SKUs.",
+    productType: product.productType,
+    dimensions: product.dimensions,
+    weight: product.weight,
+    variantLabel: product.variantLabel,
+    customProductSlug: product.customProductSlug,
     returns: "Standard products support returns within 7 days. Customised pieces are reviewed case by case.",
     offers: ["Free shipping over ₹999", "Bulk pricing available", "Mockup support for custom orders"],
     variants: mappedVariants,
