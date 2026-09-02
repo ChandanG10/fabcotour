@@ -7,6 +7,15 @@ import { useAsyncData } from "../hooks/useAsyncData";
 import { storefrontService } from "../services/api";
 
 const pageSize = 12;
+const lifestyleCategoryImages: Record<string, string> = {
+  "tote-bags": "/lifestyle/categories/tote-bags.jpg",
+  "travel-carry": "/lifestyle/categories/travel-carry.jpg",
+  drinkware: "/lifestyle/categories/drinkware.jpg",
+  "work-study": "/lifestyle/categories/work-study.jpg",
+  "home-living": "/lifestyle/categories/home-living.jpg",
+  "tech-accessories": "/lifestyle/categories/tech-accessories.jpg",
+  "personalised-gifts": "/lifestyle/categories/personalised-gifts.jpg"
+};
 
 function ProductSkeleton() {
   return <div className="animate-pulse" aria-hidden="true"><div className="aspect-square rounded-[16px] bg-black/6" /><div className="mt-4 h-4 w-4/5 rounded bg-black/6" /><div className="mt-3 h-4 w-2/5 rounded bg-black/6" /></div>;
@@ -56,6 +65,9 @@ export default function LifestylePage() {
   const promotedIds = new Set([...featuredIds, ...newArrivals.map((product) => product.id)]);
   const bestsellers = (data?.products ?? []).filter((product) => product.bestseller && !promotedIds.has(product.id)).slice(0, 4);
   const title = routeSubcategory ? `${routeSubcategory.name} | Lifestyle` : "Lifestyle";
+  const heroImage = routeSubcategory?.bannerUrl
+    || (routeSubcategory ? lifestyleCategoryImages[routeSubcategory.slug] : data?.parent?.bannerUrl)
+    || "/lifestyle/lifestyle-hero.jpg";
 
   if (!loading && !error && subcategorySlug && !routeSubcategory) {
     return <main className="container-shell py-20"><Seo title="Lifestyle collection not found" description="This Lifestyle collection is unavailable." path={`/lifestyle/${subcategorySlug}`} /><EmptyState title="Lifestyle collection not found" description="This collection may be inactive, renamed or unavailable." action={<Link to="/lifestyle" className="button-primary">Browse Lifestyle</Link>} /></main>;
@@ -66,7 +78,7 @@ export default function LifestylePage() {
       <Seo title={routeSubcategory?.seoTitle || data?.parent?.seoTitle || title} description={routeSubcategory?.seoDescription || data?.parent?.seoDescription || "Personalise the products you use every day."} path={routeSubcategory ? `/lifestyle/${routeSubcategory.slug}` : "/lifestyle"} />
       <main className="pb-28">
         <section className="relative isolate min-h-[430px] overflow-hidden bg-brand-navy text-white sm:min-h-[520px]">
-          {routeSubcategory?.bannerUrl || data?.parent?.bannerUrl ? <img src={routeSubcategory?.bannerUrl || data?.parent?.bannerUrl || undefined} alt={`${routeSubcategory?.name ?? "FabPodd Lifestyle"} collection`} className="absolute inset-0 -z-20 h-full w-full object-cover" /> : null}
+          <img src={heroImage} alt="" aria-hidden="true" className="absolute inset-0 -z-20 h-full w-full object-cover object-center" />
           <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(7,22,61,0.96),rgba(7,22,61,0.68)_58%,rgba(7,22,61,0.2))]" />
           <div className="container-shell flex min-h-[430px] items-end py-14 sm:min-h-[520px] sm:py-20">
             <div className="max-w-3xl">
@@ -83,13 +95,16 @@ export default function LifestylePage() {
               <h2 id="lifestyle-categories" className="section-title">Made for every part of your day</h2>
               <p className="mt-3 max-w-2xl text-base leading-7 text-brand-muted">Choose a collection, then make each piece personal.</p>
               <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {data.subcategories.map((category) => (
-                  <Link key={category.id} to={`/lifestyle/${category.slug}`} className="group relative min-h-[260px] overflow-hidden rounded-[16px] bg-brand-black p-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-cyan">
-                    {category.imageUrl ? <img src={category.imageUrl} alt={category.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-500 group-hover:scale-105" /> : null}
-                    <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_15%,rgba(7,22,61,0.92))]" />
-                    <div className="relative flex h-full min-h-[212px] flex-col justify-end"><h3 className="font-heading text-2xl font-bold">{category.name}</h3><span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-brand-cyan">Explore <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span></div>
-                  </Link>
-                ))}
+                {data.subcategories.map((category) => {
+                  const imageUrl = category.imageUrl || lifestyleCategoryImages[category.slug];
+                  return (
+                    <Link key={category.id} to={`/lifestyle/${category.slug}`} className="group relative min-h-[260px] overflow-hidden rounded-[16px] bg-brand-black p-6 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-cyan">
+                      {imageUrl ? <img src={imageUrl} alt="" aria-hidden="true" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-500 group-hover:scale-105" /> : null}
+                      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,22,61,0.06)_15%,rgba(7,22,61,0.94))]" />
+                      <div className="relative flex h-full min-h-[212px] flex-col justify-end"><h3 className="font-heading text-2xl font-bold">{category.name}</h3><span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-brand-cyan">Explore <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span></div>
+                    </Link>
+                  );
+                })}
               </div>
             </section>
           ) : null}

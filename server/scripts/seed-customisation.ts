@@ -13,6 +13,13 @@ const categories = [
   ["adults", "Adults", "jackets-pullovers", 10],
   ["kids-jackets", "Kids", "jackets-pullovers", 20],
   ["accessories", "Accessories", null, 30],
+  ["tote-bags", "Tote Bags", "accessories", 10],
+  ["travel-carry", "Travel & Carry", "accessories", 20],
+  ["lifestyle-drinkware", "Drinkware", "accessories", 30],
+  ["work-study", "Work & Study", "accessories", 40],
+  ["home-living", "Home & Living", "accessories", 50],
+  ["tech-accessories", "Tech Accessories", "accessories", 60],
+  ["personalised-gifts", "Personalised Gifts", "accessories", 70],
   ["drinkware", "Drinkware", null, 40],
   ["stationery-other-products", "Stationery & Other Products", null, 50]
 ] as const;
@@ -29,7 +36,7 @@ const products = [
   ["pullover-hoodie", "Pullover Hoodie", "jackets-pullovers", "adults", "320 GSM · Brushed fleece", 1099],
   ["zipper-hoodie", "Zipper Hoodie", "jackets-pullovers", "adults", "320 GSM · Brushed fleece", 1299],
   ["baseball-cap", "Baseball Cap", "accessories", null, "Structured · Adjustable", 399],
-  ["tote-bag", "Tote Bag", "accessories", null, "Canvas · 38 × 42 cm", 349],
+  ["tote-bag", "Tote Bag", "accessories", "tote-bags", "Canvas · 38 × 42 cm", 349],
   ["ceramic-mug", "Ceramic Mug", "drinkware", null, "325 ml · Gloss finish", 299]
 ] as const;
 

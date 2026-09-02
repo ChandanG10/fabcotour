@@ -269,14 +269,17 @@ export function AppShell() {
                       <AnimatePresence>
                         {open ? (
                           <motion.div
-                            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                            className="absolute left-1/2 top-full z-30 w-[min(720px,72vw)] -translate-x-1/2 rounded-[26px] border border-black/6 bg-white p-6 shadow-soft"
+                            initial={{ opacity: 0, x: "-50%", y: -8 }} animate={{ opacity: 1, x: "-50%", y: 0 }} exit={{ opacity: 0, x: "-50%", y: -8 }}
+                            className={cn(
+                              "absolute left-1/2 top-full z-30 rounded-[16px] border border-black/6 bg-white p-6 shadow-soft",
+                              children.length <= 8 ? "w-[min(640px,calc(100vw-48px))]" : "w-[min(780px,calc(100vw-48px))]"
+                            )}
                           >
                             <div className="mb-5 flex items-center justify-between border-b border-black/6 pb-4">
                               <div><p className="font-heading text-xl font-bold">Shop {category.name}</p><p className="text-xs text-brand-muted">Explore every collection</p></div>
                               <Link to={categoryPath(category)} className="text-sm font-semibold text-brand-pink">View all →</Link>
                             </div>
-                            <div className="grid grid-cols-3 gap-x-7 gap-y-1">
+                            <div className={cn("grid gap-x-5 gap-y-1", children.length <= 8 ? "grid-cols-2" : "grid-cols-3")}>
                               {children.map((child) => (
                                 <Link key={child.id} to={categoryPath(category, child.slug)} className="rounded-xl px-3 py-2.5 text-sm font-medium text-brand-charcoal/80 hover:bg-brand-soft hover:text-brand-black">
                                   {child.name}
