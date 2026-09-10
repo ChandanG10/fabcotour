@@ -8,12 +8,12 @@ export const siteConfig = {
     "Fabpodd is a premium custom apparel and gifting storefront shaped by charcoal, cream and golden-yellow brand accents.",
   baseUrl: import.meta.env.VITE_SITE_URL?.trim() || "https://fabpodd.com",
   announcement: "Free shipping on orders above ₹999  •  Easy 30-day returns  •  Secure payments",
-  whatsappNumber: import.meta.env.VITE_WHATSAPP_NUMBER?.trim() || "+91 90000 00000",
-  supportEmail: import.meta.env.VITE_SUPPORT_EMAIL?.trim() || "admin@fabcouture.in",
-  supportPhone: import.meta.env.VITE_SUPPORT_PHONE?.trim() || "+91 90000 00000",
+  whatsappNumber: import.meta.env.VITE_WHATSAPP_NUMBER?.trim() || "+91 8317448103",
+  supportEmail: import.meta.env.VITE_SUPPORT_EMAIL?.trim() || "reachfabpodd@gmail.com",
+  supportPhone: import.meta.env.VITE_SUPPORT_PHONE?.trim() || "+91 8317448103",
   businessAddress: import.meta.env.VITE_BUSINESS_ADDRESS?.trim() || "Bengaluru, Karnataka, India",
   grievanceOfficer: import.meta.env.VITE_GRIEVANCE_OFFICER?.trim() || "Customer Grievance Officer",
-  grievanceEmail: import.meta.env.VITE_GRIEVANCE_EMAIL?.trim() || "admin@fabcouture.in",
+  grievanceEmail: import.meta.env.VITE_GRIEVANCE_EMAIL?.trim() || "reachfabpodd@gmail.com",
   businessHours: "Monday to Saturday, 10:00 AM to 7:00 PM",
   minimumOrderQuantity: 12
 };

@@ -1,3 +1,4 @@
+import { adminCorporateProductsRouter, corporateProductsRouter } from "./modules/corporate-products/corporate-products.routes.js";
 import cookieParser from "cookie-parser";
 import cors, { type CorsOptions } from "cors";
 import express from "express";
@@ -12,6 +13,7 @@ import { categoriesRouter, publicCategoriesRouter, subcategoriesRouter } from ".
 import { couponsRouter } from "./modules/coupons/coupons.routes.js";
 import { customersRouter } from "./modules/customers/customers.routes.js";
 import { dashboardRouter } from "./modules/dashboard/dashboard.routes.js";
+import { publicEnquiriesRouter } from "./modules/enquiries/public-enquiries.routes.js";
 import { enquiriesRouter } from "./modules/enquiries/enquiries.routes.js";
 import { homepageRouter } from "./modules/homepage/homepage.routes.js";
 import { ordersRouter } from "./modules/orders/orders.routes.js";
@@ -129,6 +131,8 @@ export function createApp() {
   app.use("/api/admin/auth", authRouter);
   app.use("/api/admin/dashboard", dashboardRouter);
   app.use("/api/admin/products", productsRouter);
+  app.use("/api/admin/corporate-products", adminCorporateProductsRouter);
+  app.use("/api/corporate-products", corporateProductsRouter);
   app.use("/api/admin/categories", categoriesRouter);
   app.use("/api/admin/subcategories", subcategoriesRouter);
   app.use("/api/admin/homepage", homepageRouter);
@@ -136,6 +140,7 @@ export function createApp() {
   app.use("/api/admin/customers", customersRouter);
   app.use("/api/admin/coupons", couponsRouter);
   app.use("/api/admin/reviews", reviewsRouter);
+  app.use("/api/enquiries", publicEnquiriesRouter);
   app.use("/api/admin/enquiries", enquiriesRouter);
   app.use("/api/admin/uploads", uploadsRouter);
   app.use("/api/admin/customisation", adminCustomisationRouter);

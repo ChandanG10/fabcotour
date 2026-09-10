@@ -1,5 +1,5 @@
 import {
-  ArrowLeft, BringToFront, Check, ChevronDown, Copy, ImagePlus, Layers3, Lock, LockOpen, Mail,
+  ArrowLeft, Check, ChevronDown, Copy, ImagePlus, Layers3, Lock, LockOpen, Mail,
   Minus, Package, Plus, Redo2, RotateCcw, Save, ShoppingBag, Trash2, Type, Undo2, X
 } from "lucide-react";
 import { Canvas, FabricImage, FabricObject, FabricText } from "fabric";
@@ -7,8 +7,11 @@ import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "
 import { Rnd } from "react-rnd";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { siteConfig } from "../constants/site";
 import { BrandLogo } from "../components/common/BrandLogo";
 import { Product360Viewer } from "../components/customisation/Product360Viewer";
+import { objectInsideCanvas } from "../lib/customisationObjects";
+import { ObjectInspector } from "../components/customisation/ObjectInspector";
 import { ImageCropper } from "../components/customisation/ImageCropper";
 import { EmptyState, LoadingState } from "../components/common/Ui";
 import { useAsyncData } from "../hooks/useAsyncData";
@@ -24,10 +27,12 @@ interface SideState { canvasJson: CanvasJson; history: CanvasJson[]; historyInde
 type SideStates = Record<ProductSide, SideState>;
 type PanelName = "products" | "text" | "image" | "layers" | "order" | null;
 
+FabricObject.customProperties = [...new Set([...FabricObject.customProperties, "aspectRatioLocked", "lockMovementX", "lockMovementY", "lockScalingX", "lockScalingY", "lockRotation"])];
+
 const sides: ProductSide[] = ["front", "back", "right", "left"];
 const blankSide = (): SideState => ({ canvasJson: null, history: [null], historyIndex: 0, previewUrl: null, frame: null });
 const blankSides = (): SideStates => ({ front: blankSide(), back: blankSide(), right: blankSide(), left: blankSide() });
-const acceptedTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+const acceptedTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"]);
 
 function frameFromArea(area: CustomPrintArea): FrameRect {
   if (area.defaultArea) return { xPercent: area.defaultArea.x * 100, yPercent: area.defaultArea.y * 100, widthPercent: area.defaultArea.width * 100, heightPercent: area.defaultArea.height * 100 };
@@ -81,26 +86,6 @@ function framePixelSize(frame: FrameRect, area: CustomPrintArea) {
   };
 }
 
-function objectInsideCanvas(object: FabricObject, canvas: Canvas, safeMargin = 0) {
-  object.setCoords();
-  let box = object.getBoundingRect();
-  const availableWidth = Math.max(1, canvas.width - safeMargin * 2);
-  const availableHeight = Math.max(1, canvas.height - safeMargin * 2);
-  if (box.width > availableWidth || box.height > availableHeight) {
-    const fitScale = Math.min(availableWidth / box.width, availableHeight / box.height);
-    object.set({ scaleX: (object.scaleX ?? 1) * fitScale, scaleY: (object.scaleY ?? 1) * fitScale });
-    object.setCoords();
-    box = object.getBoundingRect();
-  }
-  let nextLeft = object.left;
-  let nextTop = object.top;
-  if (box.left < safeMargin) nextLeft += safeMargin - box.left;
-  if (box.top < safeMargin) nextTop += safeMargin - box.top;
-  if (box.left + box.width > canvas.width - safeMargin) nextLeft -= box.left + box.width - (canvas.width - safeMargin);
-  if (box.top + box.height > canvas.height - safeMargin) nextTop -= box.top + box.height - (canvas.height - safeMargin);
-  object.set({ left: nextLeft, top: nextTop });
-  object.setCoords();
-}
 
 function usedSidesFrom(states: SideStates) {
   return sides.filter((side) => {
@@ -285,6 +270,7 @@ export default function CustomDesignerPage() {
       width: initialArea.width,
       height: initialArea.height,
       preserveObjectStacking: true,
+      uniScaleKey: undefined,
       selectionColor: "rgba(8,185,212,.12)",
       selectionBorderColor: "#08b9d4"
     });
@@ -298,6 +284,8 @@ export default function CustomDesignerPage() {
         setTextItalic(object.fontStyle === "italic");
         setTextUnderline(Boolean(object.underline));
       }
+      if (object instanceof FabricImage) object.setControlsVisibility({ ml: object.get('aspectRatioLocked') === false, mr: object.get('aspectRatioLocked') === false, mt: object.get('aspectRatioLocked') === false, mb: object.get('aspectRatioLocked') === false });
+      canvas.uniformScaling = object ? object.get('aspectRatioLocked') !== false : true;
       setSelectedObject(object ?? null);
     };
     const constrain = ({ target }: { target?: FabricObject }) => {
@@ -309,6 +297,7 @@ export default function CustomDesignerPage() {
     canvas.on("object:scaling", constrain);
     canvas.on("object:rotating", constrain);
     canvas.on("object:modified", pushHistory);
+    canvas.on("text:changed", () => { canvas.getObjects().forEach(object => objectInsideCanvas(object, canvas)); pushHistory(); });
     canvas.on("object:added", pushHistory);
     canvas.on("object:removed", pushHistory);
     canvas.on("selection:created", (event) => selectObject(event.selected?.[0]));
@@ -432,11 +421,11 @@ export default function CustomDesignerPage() {
     if (!canvas || !textValue.trim()) return;
     const text = new FabricText(textValue.trim(), { left: canvas.width / 2, top: canvas.height / 2, originX: "center", originY: "center", fill: textColour, fontFamily: "Manrope", fontSize, fontWeight: textBold ? 800 : 400, fontStyle: textItalic ? "italic" : "normal", underline: textUnderline });
     if (text.width > canvas.width * 0.86) text.scaleToWidth(canvas.width * 0.86);
-    canvas.add(text); canvas.setActiveObject(text); objectInsideCanvas(text, canvas, activeArea?.safeMargin ?? 0); canvas.requestRenderAll(); setSelectedObject(text);
+    objectInsideCanvas(text, canvas, activeArea?.safeMargin ?? 0); canvas.add(text); canvas.setActiveObject(text); canvas.requestRenderAll(); setSelectedObject(text);
   };
 
   useEffect(() => {
-    if (!(selectedObject instanceof FabricText)) return;
+    if (!(selectedObject instanceof FabricText) || selectedObject.lockMovementX) return;
     selectedObject.set({ text: textValue, fill: textColour, fontSize, fontWeight: textBold ? 800 : 400, fontStyle: textItalic ? "italic" : "normal", underline: textUnderline });
     if (fabricCanvas.current) objectInsideCanvas(selectedObject, fabricCanvas.current, activeArea?.safeMargin ?? 0);
     selectedObject.setCoords(); fabricCanvas.current?.requestRenderAll();
@@ -444,11 +433,20 @@ export default function CustomDesignerPage() {
     return () => window.clearTimeout(timeout);
   }, [textValue, textColour, fontSize, textBold, textItalic, textUnderline, selectedObject, activeArea?.safeMargin, pushHistory]);
 
-  const uploadArtwork = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]; event.target.value = ""; if (!file) return;
-    if (!acceptedTypes.has(file.type) || !/\.(png|jpe?g|webp)$/i.test(file.name)) { toast.error("Upload a valid PNG, JPG, JPEG or WebP file."); return; }
+  const replacementImage = useRef<FabricImage | null>(null);
+  const acceptArtwork = async (file?: File) => {
+    if (!file || uploading || editingFrame || selectedObject?.lockMovementX) return;
+    if (!acceptedTypes.has(file.type) || !/\.(png|jpe?g|webp|svg)$/i.test(file.name)) { toast.error("Upload a valid PNG, JPG, JPEG, WebP or SVG file."); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error("Artwork must be 5 MB or smaller."); return; }
-    setCropFile(file);
+    replacementImage.current = selectedObject instanceof FabricImage ? selectedObject : null;
+    if (file.type === 'image/svg+xml') { setCropFile(file); return; }
+    await uploadCroppedArtwork(file);
+  };
+  const uploadArtwork = (event: ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; event.target.value = ''; void acceptArtwork(file); };
+  const commitObject = () => { const canvas = fabricCanvas.current; if (!canvas) return; canvas.getObjects().forEach(object => objectInsideCanvas(object, canvas, activeArea?.safeMargin ?? 0)); canvas.requestRenderAll(); pushHistory(); };
+  const cropSelected = async () => {
+    if (!(selectedObject instanceof FabricImage)) return;
+    try { const response = await fetch(selectedObject.getSrc()); if (!response.ok) throw new Error(); const blob = await response.blob(); replacementImage.current = selectedObject; setCropFile(new File([blob], 'artwork.png', { type: blob.type })); } catch { toast.error('Unable to open this image. Replace it with a local file.'); }
   };
 
   const uploadCroppedArtwork = async (file: File) => {
@@ -461,7 +459,14 @@ export default function CustomDesignerPage() {
       const margin = activeArea?.safeMargin ?? 0;
       const fitScale = Math.min((canvas.width - margin * 2) / Math.max(1, image.width), (canvas.height - margin * 2) / Math.max(1, image.height));
       image.set({ left: canvas.width / 2, top: canvas.height / 2, originX: "center", originY: "center", scaleX: fitScale, scaleY: fitScale, cornerColor: "#08b9d4", cornerStrokeColor: "#07163d", borderColor: "#08b9d4", cornerStyle: "circle", transparentCorners: false });
-      canvas.add(image); canvas.setActiveObject(image); objectInsideCanvas(image, canvas, margin); canvas.requestRenderAll();
+      applyingHistory.current = true;
+      if (replacementImage.current && canvas.contains(replacementImage.current)) {
+        const previous = replacementImage.current;
+        image.set({ left: previous.left, top: previous.top, angle: previous.angle, opacity: previous.opacity, flipX: previous.flipX, flipY: previous.flipY });
+        canvas.remove(previous);
+      }
+      replacementImage.current = null;
+      canvas.add(image); canvas.setActiveObject(image); objectInsideCanvas(image, canvas, margin); canvas.requestRenderAll(); applyingHistory.current = false; pushHistory();
       const artworkUrls = JSON.parse(window.sessionStorage.getItem(`${draftKey}:uploads`) || "[]") as string[];
       window.sessionStorage.setItem(`${draftKey}:uploads`, JSON.stringify([...new Set([...artworkUrls, uploaded.url])]));
       const currentFrame = statesRef.current[activeSide].frame ?? (activeArea ? frameFromArea(activeArea) : null);
@@ -475,7 +480,7 @@ export default function CustomDesignerPage() {
       }
       toast.success("Artwork uploaded at print resolution.");
     } catch (uploadError) { if (!(uploadError instanceof DOMException && uploadError.name === "AbortError")) toast.error(uploadError instanceof Error ? uploadError.message : "Artwork upload failed."); }
-    finally { setUploading(false); uploadController.current = null; }
+    finally { applyingHistory.current = false; setUploading(false); uploadController.current = null; }
   };
 
   const deleteSelected = useCallback(() => {
@@ -484,7 +489,7 @@ export default function CustomDesignerPage() {
   }, []);
   const duplicateSelected = async () => {
     const canvas = fabricCanvas.current; const active = canvas?.getActiveObject(); if (!canvas || !active) return;
-    const clone = await active.clone(); clone.set({ left: (active.left ?? 0) + 14, top: (active.top ?? 0) + 14 }); canvas.add(clone); canvas.setActiveObject(clone); objectInsideCanvas(clone, canvas, activeArea?.safeMargin ?? 0); canvas.requestRenderAll();
+    const clone = await active.clone(); clone.set({ left: (active.left ?? 0) + 14, top: (active.top ?? 0) + 14 }); objectInsideCanvas(clone, canvas, activeArea?.safeMargin ?? 0); canvas.add(clone); canvas.setActiveObject(clone); canvas.requestRenderAll();
   };
   const changeHistory = async (delta: number) => {
     const canvas = fabricCanvas.current; if (!canvas) return; const state = statesRef.current[activeSide];
@@ -611,17 +616,19 @@ export default function CustomDesignerPage() {
     <header className="designer-topbar">
       <button type="button" aria-label="Return to custom products" className="designer-logo" onClick={() => { if (!dirty || window.confirm("Leave the studio? Your latest changes are saved locally, but have not been added to the bag.")) navigate("/customise"); }}><BrandLogo className="h-10 w-[120px]" /></button>
       <div className="designer-history"><StudioButton label="Undo" disabled={historyState.historyIndex <= 0} onClick={() => void changeHistory(-1)}><Undo2 /></StudioButton><StudioButton label="Redo" disabled={historyState.historyIndex >= historyState.history.length - 1} onClick={() => void changeHistory(1)}><Redo2 /></StudioButton><StudioButton label="Save" onClick={saveDraft}><Save /></StudioButton></div>
-      <div className="designer-actions"><a className="studio-icon-button" href="mailto:support@fabpodd.com"><Mail /><span>Contact</span></a><button ref={tutorialTrigger} type="button" className="studio-text-button" onClick={() => setTutorialOpen(true)}>Tutorials</button><button type="button" className="studio-order-button" onClick={() => setPanel("order")}><ShoppingBag className="h-4 w-4" /><span>Order</span></button></div>
+      <div className="designer-actions"><a className="studio-icon-button" href={`mailto:${siteConfig.supportEmail}`}><Mail /><span>Contact</span></a><button ref={tutorialTrigger} type="button" className="studio-text-button" onClick={() => setTutorialOpen(true)}>Tutorials</button><button type="button" className="studio-order-button" onClick={() => setPanel("order")}><ShoppingBag className="h-4 w-4" /><span>Order</span></button></div>
     </header>
     <div className="designer-body">
       <aside className="designer-toolrail" aria-label="Design tools">{tools.map((tool) => { const Icon = tool.icon; return <button key={tool.id} type="button" className={panel === tool.id ? "active" : ""} onClick={() => { const opening = panel !== tool.id; setPanel(opening ? tool.id : null); if (!opening) cancelPrintingArea(); }}><Icon /><span>{tool.label}</span></button>; })}</aside>
       {panel ? <section className={`designer-panel ${panel === "order" ? "order-panel" : ""}`} aria-label={`${panel} panel`}>
         <div className="designer-panel-heading"><h2>{panel === "order" ? "Review your order" : panel}</h2><button type="button" aria-label={`Close ${panel} panel`} onClick={() => { setPanel(null); cancelPrintingArea(); }}><X /></button></div>
         {panel === "products" ? <div className="studio-form"><div><span className="studio-label">Current product</span><strong>{configuration.name}</strong><p>{configuration.specification}</p></div><Link to="/customise" className="studio-outline-button"><ArrowLeft className="h-4 w-4" /> Change product</Link><label><span className="studio-label">Colour</span><div className="colour-grid">{configuration.colours.map((colour) => <button key={colour.id} type="button" aria-label={`Use ${colour.name}`} className={selectedColour.id === colour.id ? "active" : ""} onClick={() => { if (!dirty || window.confirm("Change colour and keep the current artwork aligned to the new mockups?")) { syncCurrentJson(); window.localStorage.setItem(draftKey, JSON.stringify(statesRef.current)); const next = new URLSearchParams(searchParams); next.set("colour", colour.slug); setSearchParams(next); } }}><i style={{ background: colour.hexCode }} />{colour.name}</button>)}</div></label><label><span className="studio-label">Size</span><select value={size} onChange={(event) => setSize(event.target.value)}>{configuration.sizes.map((entry) => <option key={entry.id} value={entry.name}>{entry.name}</option>)}</select></label><p className="studio-note">Blank mockup imagery and print areas come only from the separate Customisation catalogue.</p></div> : null}
-        {panel === "text" ? <div className="studio-form"><label><span className="studio-label">Text</span><textarea value={textValue} onChange={(event) => setTextValue(event.target.value)} rows={3} maxLength={120} /></label><div className="studio-grid-two"><label><span className="studio-label">Size</span><input type="number" min="8" max="180" value={fontSize} onChange={(event) => setFontSize(Number(event.target.value))} /></label><label><span className="studio-label">Colour</span><input type="color" value={textColour} onChange={(event) => setTextColour(event.target.value)} /></label></div><div className="studio-toggle-row"><button type="button" className={textBold ? "active" : ""} onClick={() => setTextBold(!textBold)}>Bold</button><button type="button" className={textItalic ? "active" : ""} onClick={() => setTextItalic(!textItalic)}>Italic</button><button type="button" className={textUnderline ? "active" : ""} onClick={() => setTextUnderline(!textUnderline)}>Underline</button></div><button type="button" className="studio-primary-button" onClick={addText}>Add text</button></div> : null}
+        {panel === "text" ? <div className="studio-form"><label><span className="studio-label">Text</span><textarea value={textValue} onChange={(event) => setTextValue(event.target.value)} rows={3} maxLength={120} /></label><div className="studio-grid-two"><label><span className="studio-label">Size</span><div className="inspector-stepper"><button type="button" aria-label="Decrease font size" onClick={() => setFontSize(Math.max(8, fontSize - 1))}><Minus size={14} /></button><input type="number" min="8" max="180" value={fontSize} onChange={(event) => setFontSize(Math.max(8, Math.min(180, Number(event.target.value))))} /><button type="button" aria-label="Increase font size" onClick={() => setFontSize(Math.min(180, fontSize + 1))}><Plus size={14} /></button></div></label><label><span className="studio-label">Colour</span><input type="color" value={textColour} onChange={(event) => setTextColour(event.target.value)} /><input key={textColour} aria-label="Text HEX colour" defaultValue={textColour} maxLength={7} onBlur={event => { if (/^#[0-9a-f]{6}$/i.test(event.target.value)) setTextColour(event.target.value); else event.target.value = textColour; }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></label></div><div className="studio-toggle-row"><button type="button" className={textBold ? "active" : ""} onClick={() => setTextBold(!textBold)}>Bold</button><button type="button" className={textItalic ? "active" : ""} onClick={() => setTextItalic(!textItalic)}>Italic</button><button type="button" className={textUnderline ? "active" : ""} onClick={() => setTextUnderline(!textUnderline)}>Underline</button><button type="button" onClick={() => setTextValue(textValue.toUpperCase())}>Uppercase</button></div><button type="button" className="studio-primary-button" onClick={addText}>Add text</button>{selectedObject instanceof FabricText && fabricCanvas.current ? <ObjectInspector object={selectedObject} canvas={fabricCanvas.current} commit={commitObject} duplicate={() => void duplicateSelected()} remove={deleteSelected} crop={() => {}} /> : <p className="studio-note">Add or select text to edit all properties.</p>}</div> : null}
         {panel === "image" ? <div className="studio-form image-workflow">
-          <div className={`frame-setup-card ${editingFrame ? "active" : ""}`}><span className="workflow-step">1</span><div><strong>Printing area · {activeSide}</strong><p>{areaAdjustable ? "Draw directly on the product, then move or resize the selection within the safe garment surface." : "This product view uses the production-approved fixed printing area."}</p></div>{areaAdjustable ? <button type="button" className="studio-primary-button" disabled={editingFrame} onClick={beginPrintingArea}>Set Printing Area</button> : <span className="fixed-area-badge"><Lock className="h-4 w-4" />Fixed by production</span>}</div>
-          <div className={`upload-zone ${editingFrame ? "waiting" : ""}`}><span className="workflow-step">2</span><ImagePlus /><strong>Crop and add artwork</strong><p>Image crop chooses what is used. The printing area controls where it can be placed · maximum 5 MB.</p><label className="studio-primary-button" aria-disabled={editingFrame || uploading}><input type="file" className="sr-only" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" onChange={(event) => void uploadArtwork(event)} disabled={editingFrame || uploading} />{uploading ? "Uploading…" : editingFrame ? "Confirm area first" : "Choose image"}</label>{uploading ? <button type="button" className="studio-outline-button" onClick={() => uploadController.current?.abort()}>Cancel upload</button> : null}</div>
+          <div className="printing-status"><Lock size={14} /><strong>Printing Area · {activeSide}</strong><span>Locked</span></div>
+          {areaAdjustable ? <button type="button" className="studio-outline-button" disabled={editingFrame} onClick={beginPrintingArea}>Adjust printing area</button> : null}
+          <div className={`upload-zone ${editingFrame ? "waiting" : ""}`} onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; }} onDrop={event => { event.preventDefault(); void acceptArtwork(event.dataTransfer.files[0]); }}><ImagePlus /><strong>Drop artwork here</strong><p>PNG, JPG, JPEG, WEBP or SVG · up to 5 MB</p><label className="studio-primary-button"><input type="file" className="sr-only" accept=".png,.jpg,.jpeg,.webp,.svg" onChange={uploadArtwork} disabled={editingFrame || uploading || Boolean(selectedObject?.lockMovementX)} />{uploading ? "Uploading…" : selectedObject instanceof FabricImage ? "Replace Image" : "Choose image"}</label>{uploading ? <button type="button" className="studio-outline-button" onClick={() => uploadController.current?.abort()}>Cancel upload</button> : null}</div>
+          {selectedObject instanceof FabricImage && fabricCanvas.current ? <ObjectInspector object={selectedObject} canvas={fabricCanvas.current} commit={commitObject} duplicate={() => void duplicateSelected()} remove={deleteSelected} crop={() => void cropSelected()} physicalWidthCm={activeArea.realWidthCm} /> : null}
           {dpiNotice ? <p className={`dpi-notice ${dpiNotice.status}`}>{dpiNotice.status === "warning" ? `Low resolution: about ${dpiNotice.dpi} DPI. Use a larger image; 300 DPI is preferred and 150 DPI is the minimum.` : `Artwork resolution is about ${dpiNotice.dpi} DPI. 300 DPI is preferred.`}</p> : null}
           <p className="studio-note">After uploading, select the image to drag, resize, or rotate it within your chosen dotted area.</p>
         </div> : null}
@@ -644,10 +651,10 @@ export default function CustomDesignerPage() {
           onResizeStop={(_event, _direction, element, _delta, position) => { const next = constrainFrame(frameFromRendered({ x: position.x, y: position.y, width: element.offsetWidth, height: element.offsetHeight }), activeArea); if (framePassesBoundary(next, activeArea)) setPendingFrame(next); else toast.error("Keep the complete printing area on the garment surface."); }}
         ><div className="print-area-canvas" style={artworkClipStyle} aria-label={`${activeSide} image area`}><canvas ref={canvasElement} />{editingFrame && !drawingFrame ? <span className="frame-pointer">Drag to move · Pull handles to resize</span> : null}</div></Rnd></div></div></div>
         {editingFrame ? <div className="printing-area-actions"><button type="button" className="studio-primary-button" onClick={confirmPrintingArea}><Check className="h-4 w-4" />Confirm Area</button><button type="button" className="studio-outline-button" onClick={resetFrame}><RotateCcw className="h-4 w-4" />Reset to Default</button><button type="button" className="studio-outline-button" onClick={cancelPrintingArea}>Cancel</button></div> : null}
-        {selectedObject ? <div className="object-toolbar"><button type="button" aria-label="Duplicate selected object" onClick={() => void duplicateSelected()}><Copy /></button><button type="button" aria-label="Bring selected object forward" onClick={() => { const canvas = fabricCanvas.current; if (canvas) { canvas.bringObjectForward(selectedObject); canvas.requestRenderAll(); pushHistory(); } }}><BringToFront /></button><button type="button" aria-label={selectedObject.lockMovementX ? "Unlock selected object" : "Lock selected object"} onClick={() => { const locked = !selectedObject.lockMovementX; selectedObject.set({ lockMovementX: locked, lockMovementY: locked, lockScalingX: locked, lockScalingY: locked, lockRotation: locked }); fabricCanvas.current?.requestRenderAll(); pushHistory(); }}>{selectedObject.lockMovementX ? <LockOpen /> : <Lock />}</button><button type="button" aria-label="Delete selected object" onClick={deleteSelected}><Trash2 /></button></div> : null}
+        {selectedObject ? <div className="object-toolbar"><button type="button" aria-label="Duplicate selected object" onClick={() => void duplicateSelected()}><Copy />Duplicate</button><button type="button" aria-label="Center selected object" onClick={() => { const canvas = fabricCanvas.current; if (canvas && !selectedObject.lockMovementX) { canvas.centerObject(selectedObject); commitObject(); } }}>Center</button><button type="button" aria-label={selectedObject.lockMovementX ? "Unlock selected object" : "Lock selected object"} onClick={() => { const locked = !selectedObject.lockMovementX; selectedObject.set({ lockMovementX: locked, lockMovementY: locked, lockScalingX: locked, lockScalingY: locked, lockRotation: locked }); fabricCanvas.current?.requestRenderAll(); pushHistory(); }}>{selectedObject.lockMovementX ? <LockOpen /> : <Lock />}{selectedObject.lockMovementX ? "Unlock" : "Lock"}</button><button type="button" aria-label="Delete selected object" onClick={deleteSelected}><Trash2 />Delete</button></div> : null}
         <div className="zoom-controls"><button type="button" aria-label="Zoom out" onClick={() => setZoom((value) => Math.max(.72, value - .08))}><Minus /></button><button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button><button type="button" aria-label="Zoom in" onClick={() => setZoom((value) => Math.min(1.25, value + .08))}><Plus /></button></div>
       </main>
-      <aside className="designer-sides" aria-label="Product sides">{sides.map((side) => { const view = selectedColour.views.find((entry) => entry.side === side)!; return <button key={side} type="button" className={activeSide === side ? "active" : ""} onClick={() => void switchSide(side)}><span><img src={view.imageUrl} alt="" /></span><strong>{side}</strong></button>; })}<button ref={preview360Trigger} type="button" className="preview-360" onClick={open360Preview}><RotateCcw /> Try 360°</button></aside>
+      <aside className="designer-sides" aria-label="Product sides">{sides.map((side) => { const view = selectedColour.views.find((entry) => entry.side === side)!; return <button key={side} type="button" className={activeSide === side ? "active" : ""} onClick={() => void switchSide(side)}><span><img src={view.imageUrl} alt="" /></span><strong>{side}</strong></button>; })}<button ref={preview360Trigger} type="button" className="preview-360" onClick={open360Preview}><RotateCcw /> View Mockup</button></aside>
     </div>
     <nav className="designer-mobile-tools" aria-label="Mobile design tools">{tools.map((tool) => { const Icon = tool.icon; return <button key={tool.id} type="button" className={panel === tool.id ? "active" : ""} onClick={() => { setPanel(tool.id); cancelPrintingArea(); }}><Icon /><span>{tool.label}</span></button>; })}</nav>
     <div className="sr-only" aria-live="polite">{announcement}</div>

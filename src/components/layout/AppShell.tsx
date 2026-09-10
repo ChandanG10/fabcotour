@@ -439,13 +439,13 @@ export function AppShell() {
         </div>
       </header>
 
-      <main className="pb-[90px] md:pb-0">
+      <main>
         <Outlet />
       </main>
 
-      <footer className="mt-24 bg-brand-black text-white">
-        <div className="container-shell grid gap-10 py-16 lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr]">
-          <div>
+      <footer className="mt-12 bg-brand-black pb-[calc(88px+env(safe-area-inset-bottom))] text-white md:mt-24 md:pb-0">
+        <div className="container-shell grid grid-cols-2 gap-x-6 gap-y-8 py-10 md:py-16 lg:grid-cols-[1.3fr_0.8fr_0.8fr_0.8fr]">
+          <div className="col-span-2 min-w-0 lg:col-span-1">
             <div className="inline-flex rounded-[30px] bg-white px-5 py-4 shadow-soft">
               <BrandLogo className="h-[72px] w-[196px]" />
             </div>
@@ -454,13 +454,12 @@ export function AppShell() {
               customisation flows that feel premium from first click to delivery.
             </p>
             <div className="mt-6 flex items-center gap-3">
-              <SocialPill icon={<Instagram className="h-4 w-4" />} />
-              <SocialPill icon={<Facebook className="h-4 w-4" />} />
-              <SocialPill icon={<X className="h-4 w-4" />} />
+              <SocialPill href="https://www.instagram.com/fab_podd/" label="FabPodd on Instagram" icon={<Instagram aria-hidden="true" className="h-4 w-4" />} />
+              <SocialPill href="https://www.facebook.com/profile.php?id=61594100076491" label="FabPodd on Facebook" icon={<Facebook aria-hidden="true" className="h-4 w-4" />} />
             </div>
             <div className="mt-6 space-y-2 text-sm text-white/60">
-              <p>{siteConfig.supportEmail}</p>
-              <p>{siteConfig.supportPhone}</p>
+              <a href={`mailto:${siteConfig.supportEmail}`} className="block break-words py-2 hover:text-white">{siteConfig.supportEmail}</a>
+              <a href={`tel:${siteConfig.supportPhone.replace(/\s/g, "")}`} className="block py-2 hover:text-white">{siteConfig.supportPhone}</a>
               <p>{siteConfig.businessAddress}</p>
               <div className="mt-4 border-t border-white/10 pt-4 text-xs leading-6 text-white/58">
                 <p className="font-semibold text-white/75">Grievance contact</p>
@@ -477,10 +476,13 @@ export function AppShell() {
         </div>
 
         <div className="border-t border-white/10">
-          <div className="container-shell flex flex-col gap-4 py-6 text-sm text-white/55 md:flex-row md:items-center md:justify-between">
-            <p>© 2026 Fabpodd. All rights reserved.</p>
-            <div className="flex flex-wrap gap-4">
-              <button type="button" onClick={() => setCookieChoice(undefined)} className="hover:text-white">Cookie preferences</button>
+          <div className="container-shell flex flex-col gap-4 py-6 text-sm text-white/70 lg:flex-row lg:items-start lg:justify-between">
+            <div className="shrink-0 space-y-2">
+              <p>© 2026 Fabpodd. All rights reserved.</p>
+              <p>Developed by : <a href="https://vertexsoftware.in" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-white">vertexsoftware.in</a></p>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 lg:justify-end">
+              <button type="button" onClick={() => setCookieChoice(undefined)} className="min-h-11 hover:text-white">Cookie preferences</button>
               <span>Secure checkout</span>
               <span>UPI</span>
               <span>Visa</span>
@@ -502,7 +504,7 @@ export function AppShell() {
         </div>
       ) : null}
 
-      <div className="fixed bottom-6 right-4 z-40 flex flex-col gap-3">
+      <div className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] right-4 z-40 flex flex-col gap-3 md:bottom-6">
         {showTop ? (
           <button
             type="button"
@@ -570,12 +572,12 @@ function FooterColumn({
   links: Array<{ label: string; to: string }>;
 }) {
   return (
-    <div>
+    <div className={cn("min-w-0", title === "Support" && "col-span-2 lg:col-span-1")}>
       <h3 className="font-heading text-lg font-bold">{title}</h3>
-      <ul className="mt-5 space-y-3 text-sm text-white/70">
+      <ul className={cn("mt-3 grid text-sm text-white/75", title === "Support" && "grid-cols-2 gap-x-6 lg:grid-cols-1")}>
         {links.map((link) => (
           <li key={link.to + link.label}>
-            <Link to={link.to} className="transition duration-300 ease-luxe hover:text-brand-yellow">
+            <Link to={link.to} className="flex min-h-11 items-center py-2 leading-6 transition duration-300 ease-luxe hover:text-brand-yellow">
               {link.label}
             </Link>
           </li>
@@ -585,10 +587,10 @@ function FooterColumn({
   );
 }
 
-function SocialPill({ icon }: { icon: ReactNode }) {
+function SocialPill({ icon, href, label }: { icon: ReactNode; href: string; label: string }) {
   return (
-    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/8 text-white/80">
+    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`${label} (opens in a new tab)`} className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/8 text-white/80 hover:bg-white/15 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
       {icon}
-    </span>
+    </a>
   );
 }

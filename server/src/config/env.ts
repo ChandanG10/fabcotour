@@ -22,6 +22,12 @@ const envSchema = z.object({
     .refine((value) => !/^\*+$/.test(value.trim()), {
       message: "CLOUDINARY_API_SECRET must be the real secret, not a masked placeholder."
     }),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  SMTP_FROM: z.union([z.string().email(), z.literal("")]).optional(),
+  CORPORATE_ENQUIRY_EMAIL: z.union([z.string().email(), z.literal("")]).optional(),
   ADMIN_EMAIL: z.string().email(),
   ADMIN_PASSWORD: z.string().min(8)
 });

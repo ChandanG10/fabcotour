@@ -10,6 +10,7 @@ import ReactDOM from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "sonner";
 import { BrowserRouter } from "react-router-dom";
+import { ScrollToTop } from "./components/common/ScrollToTop";
 import { AppRouter } from "./routes/AppRouter";
 
 class AppErrorBoundary extends React.Component<React.PropsWithChildren, { failed: boolean }> {
@@ -45,6 +46,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <HelmetProvider>
       <AppErrorBoundary>
         <BrowserRouter>
+          <ScrollToTop />
           <AppRouter />
           <Toaster position="top-right" richColors />
         </BrowserRouter>

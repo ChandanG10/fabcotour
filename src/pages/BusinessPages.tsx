@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { CorporateCollections } from "../components/corporate/CorporateCollections";
+import { useState, type ReactNode } from "react";
+import { apiRequest } from "../lib/http";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, BriefcaseBusiness, FileCheck2, Gift, Handshake, PackageOpen, PhoneCall, Truck } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -50,14 +52,23 @@ const sellerSchema = z.object({
 });
 
 export function CorporatePage() {
+  const [emailSent, setEmailSent] = useState(false);
   const form = useForm<z.infer<typeof corporateSchema>>({
     resolver: zodResolver(corporateSchema),
     defaultValues: { consent: true }
   });
 
-  const onSubmit = form.handleSubmit(() => {
-    toast.success("Corporate enquiry submitted");
-    form.reset({ consent: true });
+  const onSubmit = form.handleSubmit(async (data) => {
+    setEmailSent(false);
+    form.clearErrors("root");
+    try {
+      await apiRequest<{ success: boolean }>("/enquiries/corporate", { method: "POST", body: JSON.stringify(data) });
+      form.reset({ consent: true });
+      setEmailSent(true);
+      toast.success("Your corporate enquiry has been emailed to our team.");
+    } catch (error) {
+      form.setError("root", { message: error instanceof Error ? error.message : "Unable to send your enquiry. Please try again." });
+    }
   });
 
   return (
@@ -91,6 +102,8 @@ export function CorporatePage() {
             ))}
           </div>
         </section>
+
+        <CorporateCollections />
 
         <section className="mt-14 grid gap-8 lg:grid-cols-2">
           <div className="rounded-[32px] bg-white p-8 shadow-card">
@@ -145,7 +158,7 @@ export function CorporatePage() {
           <SectionIntro
             eyebrow="Corporate enquiry form"
             title="Tell us what needs to be produced"
-            description="Every field is validated so the eventual backend contract is already mapped cleanly."
+            description="Share your requirements and our team will get in touch to discuss your corporate gifts."
           />
           <form onSubmit={onSubmit} className="grid gap-5 md:grid-cols-2">
             <InputField label="Company name" register={form.register("companyName")} error={form.formState.errors.companyName} />
@@ -157,7 +170,7 @@ export function CorporatePage() {
             <SelectField label="Budget range" register={form.register("budgetRange")} error={form.formState.errors.budgetRange} options={["Rs. 10,000 - 25,000", "Rs. 25,000 - 50,000", "Rs. 50,000 - 1,00,000", "Rs. 1,00,000+"]} />
             <InputField label="Event or delivery date" type="date" register={form.register("eventDate")} error={form.formState.errors.eventDate} />
             <InputField label="Delivery city" register={form.register("deliveryCity")} error={form.formState.errors.deliveryCity} />
-            <InputField label="Upload logo or brief" register={form.register("customisationRequirements")} error={form.formState.errors.customisationRequirements} placeholder="Describe branding, packaging or recipient requirements" />
+            <InputField label="Customisation requirements" register={form.register("customisationRequirements")} error={form.formState.errors.customisationRequirements} placeholder="Describe branding, packaging or recipient requirements" />
             <div className="md:col-span-2">
               <TextAreaField label="Message" register={form.register("message")} error={form.formState.errors.message} rows={5} />
             </div>
@@ -165,9 +178,11 @@ export function CorporatePage() {
               <input type="checkbox" {...form.register("consent")} />
               <span>I consent to Fabpodd contacting me about this enquiry.</span>
             </label>
-            {form.formState.isSubmitSuccessful ? <div className="md:col-span-2"><SuccessInline label="Professional success state: your enquiry has been recorded and can now move into mock API handling." /></div> : null}
+            {form.formState.errors.consent ? <p role="alert" className="md:col-span-2 text-sm text-red-700">Please agree to be contacted about your enquiry.</p> : null}
+            {form.formState.errors.root ? <p role="alert" className="md:col-span-2 text-sm text-red-700">{form.formState.errors.root.message}</p> : null}
+            {emailSent ? <div role="status" className="md:col-span-2"><SuccessInline label="Your enquiry has been emailed to our team. We’ll contact you using the details provided." /></div> : null}
             <div className="md:col-span-2">
-              <button type="submit" className="button-primary">Submit corporate enquiry</button>
+              <button type="submit" className="button-primary disabled:opacity-60" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Sending enquiry…" : "Submit corporate enquiry"}</button>
             </div>
           </form>
         </section>

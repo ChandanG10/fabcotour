@@ -1,3 +1,5 @@
+import { useLocation, useNavigate } from "react-router-dom";
+import { CorporateProductsAdminPanel } from "../components/CorporateProductsAdminPanel";
 import {
   AlertTriangle,
   Archive,
@@ -37,6 +39,7 @@ import { CustomisationAdminPanel } from "../components/CustomisationAdminPanel";
 
 type DashboardSection =
   | "overview"
+  | "corporate-products"
   | "products"
   | "customisation"
   | "categories"
@@ -175,6 +178,7 @@ const sections: Array<{
 }> = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
   { id: "products", label: "Products", icon: Package },
+  { id: "corporate-products", label: "Corporate Products", icon: Package },
   { id: "customisation", label: "Customisation", icon: Palette },
   { id: "categories", label: "Categories", icon: FolderTree },
   { id: "homepage", label: "Homepage", icon: Home },
@@ -398,7 +402,14 @@ export default function AdminDashboardPage() {
   const { admin, loading, refresh, setAdmin } = useAdminAuth();
   const authFailureHandledRef = useRef(false);
   const skuSuggestionRequestRef = useRef(0);
-  const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [dashboardSection, setDashboardSection] = useState<DashboardSection>("overview");
+  const activeSection = location.pathname === "/admin/corporate-products" ? "corporate-products" : dashboardSection;
+  const setActiveSection = (section: DashboardSection) => {
+    if (section === "corporate-products") navigate("/admin/corporate-products");
+    else { setDashboardSection(section); if (location.pathname !== "/admin/dashboard") navigate("/admin/dashboard"); }
+  };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState>(null);
@@ -1800,6 +1811,7 @@ export default function AdminDashboardPage() {
               </div>
             ) : null}
 
+            {activeSection === "corporate-products" ? <CorporateProductsAdminPanel /> : null}
             {activeSection === "customisation" ? <CustomisationAdminPanel /> : null}
 
             {activeSection === "categories" ? (
@@ -2504,7 +2516,13 @@ function EnquiryTable({
         String(row.contact_person ?? row.name ?? "—"),
         String(row.work_email ?? row.email ?? "—"),
         String(row.status ?? "New"),
-        String(row.required_products ?? row.products ?? row.message ?? "—"),
+        kind === "corporate" ? <div key={`details-${row.id}`} className="min-w-48 space-y-2 text-sm">
+          <p className="font-semibold">{String(row.required_products ?? "—")}</p>
+          <p>{String(row.company_name ?? "")} · {String(row.phone_number ?? "")}</p>
+          <p>Quantity: {String(row.estimated_quantity ?? "—")}</p>
+          <p className="max-w-md whitespace-pre-wrap">{String(row.message ?? "")}</p>
+          {typeof row.attachment_url === "string" && row.attachment_url.startsWith("https://") ? <a href={row.attachment_url} target="_blank" rel="noreferrer" className="font-semibold underline">View artwork</a> : null}
+        </div> : String(row.required_products ?? row.products ?? row.message ?? "—"),
         <select
           key={String(row.id)}
           defaultValue={String(row.status ?? "New")}

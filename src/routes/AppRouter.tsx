@@ -10,6 +10,7 @@ const LifestylePage = lazy(() => import("../pages/LifestylePage"));
 const ProductPage = lazy(() => import("../pages/ProductPage"));
 const CustomizerPage = lazy(() => import("../pages/CustomizerPage"));
 const CustomDesignerPage = lazy(() => import("../pages/CustomDesignerPage"));
+const CorporateProductPage = lazy(() => import("../pages/CorporateProductPage"));
 const CorporatePage = lazy(() => import("../pages/BusinessPages").then((module) => ({ default: module.CorporatePage })));
 const BulkOrdersPage = lazy(() => import("../pages/BusinessPages").then((module) => ({ default: module.BulkOrdersPage })));
 const SellerPage = lazy(() => import("../pages/BusinessPages").then((module) => ({ default: module.SellerPage })));
@@ -44,6 +45,7 @@ export function AppRouter() {
       <Routes>
         <Route element={<AdminRouteShell />}>
           <Route path="/admin" element={<AdminEntryRedirect />} />
+          <Route path="/admin/corporate-products" element={<ProtectedAdminRoute><AdminDashboardPage /></ProtectedAdminRoute>} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route
             path="/admin/dashboard"
@@ -66,6 +68,7 @@ export function AppRouter() {
           <Route path="/lifestyle/:subcategorySlug" element={<LifestylePage />} />
           <Route path="/product/:slug" element={<ProductPage />} />
           <Route path="/customise" element={<CustomizerPage />} />
+          <Route path="/corporate-gifting/:slug" element={<CorporateProductPage />} />
           <Route path="/corporate-gifting" element={<CorporatePage />} />
           <Route path="/bulk-orders" element={<BulkOrdersPage />} />
           <Route path="/start-selling" element={<SellerPage />} />
