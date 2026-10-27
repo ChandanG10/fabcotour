@@ -1,11 +1,10 @@
 import { adminCorporateProductsRouter, corporateProductsRouter } from "./modules/corporate-products/corporate-products.routes.js";
 import cookieParser from "cookie-parser";
-import cors, { type CorsOptions } from "cors";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { pool } from "./db/pool.js";
-import { env, isProduction } from "./config/env.js";
+import { configureCors } from "./config/cors.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFoundHandler } from "./middleware/not-found.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
@@ -26,57 +25,12 @@ import { payuRouter } from "./modules/payu/payu.routes.js";
 import { customerAuthRouter } from "./modules/customer-auth/customer-auth.routes.js";
 import { customerAccountRouter } from "./modules/customer-account/customer-account.routes.js";
 
-export const productionOrigins = Array.from(
-  new Set(
-    ["https://fabpodd.com", "https://www.fabpodd.com", env.APP_ORIGIN]
-      .filter((origin): origin is string => Boolean(origin))
-      .map((origin) => origin.replace(/\/+$/, ""))
-  )
-);
-
-export function isAllowedOrigin(origin?: string): boolean {
-  if (!origin) {
-    return true;
-  }
-
-  if (productionOrigins.includes(origin)) {
-    return true;
-  }
-
-  try {
-    const url = new URL(origin);
-    return (
-      !isProduction &&
-      (url.protocol === "http:" || url.protocol === "https:") &&
-      ["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname)
-    );
-  } catch {
-    return false;
-  }
-}
-
-export const corsOptions: CorsOptions = {
-  origin(origin, callback) {
-    if (isAllowedOrigin(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    console.error(`Blocked CORS origin: ${origin}`);
-    callback(new Error("Origin is not allowed by CORS"));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  exposedHeaders: ["Set-Cookie"],
-  optionsSuccessStatus: 204
-};
-
 export function createApp() {
   const app = express();
 
   app.set("trust proxy", 1);
   app.disable("etag");
+  configureCors(app);
   app.use((_request, response, next) => {
     // CORS varies by request Origin. Do not let browsers or Vercel reuse a
     // response (and its Access-Control-Allow-Origin value) for another origin.
@@ -87,8 +41,6 @@ export function createApp() {
     response.setHeader("Expires", "0");
     next();
   });
-  app.options(/.*/, cors(corsOptions));
-  app.use(cors(corsOptions));
   app.use(helmet());
   app.use(
     rateLimit({
