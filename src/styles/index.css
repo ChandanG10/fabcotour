@@ -17,8 +17,8 @@
   --brand-soft: #f2f7fa;
   --brand-gray: #6b7280;
   --announcement-height: 36px;
-  --header-height: 82px;
-  --total-header-height: 118px;
+  --header-height: 136px;
+  --total-header-height: 172px;
   color: var(--brand-navy);
   background: var(--brand-cream);
   font-family: Inter, sans-serif;
@@ -152,6 +152,13 @@ img {
   }
 }
 
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --header-height: 70px;
+    --total-header-height: 106px;
+  }
+}
+
 @layer components {
   .container-shell {
     @apply mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8;
@@ -180,6 +187,29 @@ img {
   .badge-dot {
     @apply absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-yellow px-1 text-[10px] font-bold text-brand-black;
   }
+}
+
+.legal-copy p + p,
+.legal-copy p + ul,
+.legal-copy ul + p {
+  margin-top: 1rem;
+}
+
+.legal-copy ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+
+.legal-copy li + li {
+  margin-top: 0.5rem;
+}
+
+.legal-copy a {
+  color: var(--brand-cyan-dark);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
 .marquee-track {

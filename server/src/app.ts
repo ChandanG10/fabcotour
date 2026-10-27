@@ -22,6 +22,9 @@ import { reviewsRouter } from "./modules/reviews/reviews.routes.js";
 import { storeRouter } from "./modules/store/store.routes.js";
 import { uploadsRouter } from "./modules/uploads/uploads.routes.js";
 import { adminCustomisationRouter, customisationRouter } from "./modules/customisation/customisation.routes.js";
+import { payuRouter } from "./modules/payu/payu.routes.js";
+import { customerAuthRouter } from "./modules/customer-auth/customer-auth.routes.js";
+import { customerAccountRouter } from "./modules/customer-account/customer-account.routes.js";
 
 export const productionOrigins = Array.from(
   new Set(
@@ -129,6 +132,8 @@ export function createApp() {
   });
 
   app.use("/api/admin/auth", authRouter);
+  app.use("/api/customer/auth", customerAuthRouter);
+  app.use("/api/customer/account", customerAccountRouter);
   app.use("/api/admin/dashboard", dashboardRouter);
   app.use("/api/admin/products", productsRouter);
   app.use("/api/admin/corporate-products", adminCorporateProductsRouter);
@@ -146,6 +151,7 @@ export function createApp() {
   app.use("/api/admin/customisation", adminCustomisationRouter);
   app.use("/api/customisation", customisationRouter);
   app.use("/api/store", storeRouter);
+  app.use("/api/payu", payuRouter);
   app.use("/api/categories", publicCategoriesRouter);
   app.use("/api/products", storeProductsRouter);
 

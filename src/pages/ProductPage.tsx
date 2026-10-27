@@ -14,6 +14,7 @@ export default function ProductPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const addToCart = useAppStore((state) => state.addToCart);
+  const user = useAppStore((state) => state.user);
   const toggleWishlist = useAppStore((state) => state.toggleWishlist);
   const addRecentProduct = useAppStore((state) => state.addRecentProduct);
   const wishlist = useAppStore((state) => state.wishlist);
@@ -345,7 +346,10 @@ export default function ProductPage() {
                 >
                   Buy Now
                 </button>
-                <button type="button" className="button-secondary" onClick={() => toggleWishlist(product.id)}>
+                <button type="button" className="button-secondary" onClick={() => {
+                  if (!user) { navigate("/login", { state: { from: `/product/${product.slug}` } }); return; }
+                  toggleWishlist(product.id);
+                }}>
                   <Heart className={`mr-2 h-4 w-4 ${wished ? "fill-brand-pink text-brand-pink" : ""}`} />
                   Add to Wishlist
                 </button>

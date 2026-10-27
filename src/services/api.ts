@@ -1,8 +1,8 @@
-import { faqs, mockOrders, mockUser, reviews, testimonials } from "../data/catalog";
+import { faqs, reviews, testimonials } from "../data/catalog";
 import { apiRequest, apiUpload } from "../lib/http";
 import type { HomepagePayload, StoreCategory, StoreProduct } from "../lib/storefront";
 import { normalizeCategory, normalizeHomepagePayload, normalizeProduct } from "../lib/storefront";
-import type { CustomPricingBreakdown, CustomProductConfiguration, CustomProductSummary, CustomisedCartData, Order, Product, Review, User } from "../types/models";
+import type { Address, CustomPricingBreakdown, CustomProductConfiguration, CustomProductSummary, CustomisedCartData, Order, Product, Review, SavedCustomDesign, User, WishlistItem } from "../types/models";
 
 interface ListResponse<T> {
   items: T[];
@@ -89,7 +89,7 @@ export const storefrontService = {
   async createOrder(payload: {
     customer: { name: string; email: string; phone: string };
     address: User["addresses"][number];
-    paymentMethod: "Cash on delivery";
+    paymentMethod: "cod" | "payu";
     couponCode?: string;
     items: Array<{
       type?: "STANDARD_PRODUCT";
@@ -133,6 +133,20 @@ export const storefrontService = {
       Cancelled: ["Order cancelled"], Returned: ["Return recorded"]
     };
     return { ...response.item, trackingSteps: statusSteps[response.item.status] ?? [response.item.status] };
+  },
+  async initiatePayu(orderId: string) {
+    return apiRequest<{ action: string; params: Record<string, string> }>("/payu/initiate", {
+      method: "POST",
+      body: JSON.stringify({ orderId })
+    });
+  },
+  async getPayuStatus(orderId: string) {
+    const response = await apiRequest<ItemResponse<{
+      orderNumber: string;
+      orderStatus: Order["status"];
+      paymentStatus: NonNullable<Order["paymentStatus"]>;
+    }>>(`/payu/status/${encodeURIComponent(orderId)}`);
+    return response.item;
   }
 };
 
@@ -204,11 +218,78 @@ export const contentService = {
 };
 
 export const accountService = {
-  async getUser(): Promise<User> {
-    return mockUser;
+  async me(): Promise<User> {
+    return (await apiRequest<{ customer: User }>("/customer/auth/me")).customer;
+  },
+  async register(payload: { name: string; email: string; phone: string; password: string; confirmPassword: string }) {
+    return (await apiRequest<{ customer: User }>("/customer/auth/register", { method: "POST", body: JSON.stringify(payload) })).customer;
+  },
+  async login(payload: { email: string; password: string }) {
+    return (await apiRequest<{ customer: User }>("/customer/auth/login", { method: "POST", body: JSON.stringify(payload) })).customer;
+  },
+  async googleLogin(credential: string) {
+    return (await apiRequest<{ customer: User }>("/customer/auth/google", { method: "POST", body: JSON.stringify({ credential }) })).customer;
+  },
+  logout() {
+    return apiRequest<void>("/customer/auth/logout", { method: "POST" });
+  },
+  forgotPassword(email: string) {
+    return apiRequest<{ message: string; developmentResetUrl?: string }>("/customer/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+  },
+  resetPassword(payload: { token: string; password: string; confirmPassword: string }) {
+    return apiRequest<{ message: string }>("/customer/auth/reset-password", { method: "POST", body: JSON.stringify(payload) });
+  },
+  changePassword(payload: { currentPassword: string; newPassword: string; confirmPassword: string }) {
+    return apiRequest<{ message: string }>("/customer/auth/change-password", { method: "POST", body: JSON.stringify(payload) });
+  },
+  requestSetPassword() {
+    return apiRequest<{ message: string; developmentResetUrl?: string }>("/customer/auth/set-password-request", { method: "POST" });
+  },
+  async updateProfile(payload: { name: string; phone: string }) {
+    return (await apiRequest<ItemResponse<User>>("/customer/account/profile", { method: "PATCH", body: JSON.stringify(payload) })).item;
+  },
+  async uploadAvatar(file: File) {
+    const formData = new FormData(); formData.append("avatar", file);
+    return (await apiUpload<ItemResponse<User>>("/customer/account/profile/avatar", formData)).item;
+  },
+  async getSummary() {
+    return (await apiRequest<ItemResponse<{ orders: number; wishlist: number; designs: number; addresses: number }>>("/customer/account/summary")).item;
   },
   async getOrders(): Promise<Order[]> {
-    return mockOrders;
+    return (await apiRequest<ListResponse<Order>>("/customer/account/orders")).items;
+  },
+  async getWishlist(): Promise<WishlistItem[]> {
+    return (await apiRequest<ListResponse<WishlistItem>>("/customer/account/wishlist")).items;
+  },
+  addWishlist(productId: string) {
+    return apiRequest<ItemResponse<WishlistItem>>("/customer/account/wishlist", { method: "POST", body: JSON.stringify({ productId }) });
+  },
+  removeWishlist(productId: string) {
+    return apiRequest<void>(`/customer/account/wishlist/${encodeURIComponent(productId)}`, { method: "DELETE" });
+  },
+  async getAddresses(): Promise<Address[]> {
+    return (await apiRequest<ListResponse<Address>>("/customer/account/addresses")).items;
+  },
+  async createAddress(payload: Omit<Address, "id">) {
+    return (await apiRequest<ListResponse<Address>>("/customer/account/addresses", { method: "POST", body: JSON.stringify(payload) })).items;
+  },
+  async updateAddress(id: string, payload: Omit<Address, "id">) {
+    return (await apiRequest<ListResponse<Address>>(`/customer/account/addresses/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(payload) })).items;
+  },
+  async setDefaultAddress(id: string) {
+    return (await apiRequest<ListResponse<Address>>(`/customer/account/addresses/${encodeURIComponent(id)}/default`, { method: "PATCH" })).items;
+  },
+  async deleteAddress(id: string) {
+    return (await apiRequest<ListResponse<Address>>(`/customer/account/addresses/${encodeURIComponent(id)}`, { method: "DELETE" })).items;
+  },
+  async getDesigns(): Promise<SavedCustomDesign[]> {
+    return (await apiRequest<ListResponse<SavedCustomDesign>>("/customer/account/designs")).items;
+  },
+  saveDesign(payload: Record<string, unknown>, id?: string) {
+    return apiRequest<ItemResponse<{ id: string }>>(id ? `/customer/account/designs/${encodeURIComponent(id)}` : "/customer/account/designs", { method: id ? "PUT" : "POST", body: JSON.stringify(payload) });
+  },
+  deleteDesign(id: string) {
+    return apiRequest<void>(`/customer/account/designs/${encodeURIComponent(id)}`, { method: "DELETE" });
   },
   async submitReview(review: Review) {
     return { success: true, review };

@@ -1,32 +1,49 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { MapPin, PackageCheck, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
+import { Camera, Heart, LockKeyhole, MapPin, Package, PackageCheck, Palette, Plus, Save, ShieldCheck, Trash2, UserRound, XCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
 import { AssetImage, defaultProductAssetPath } from "../components/common/AssetImage";
 import { BrandLogo } from "../components/common/BrandLogo";
+import { CustomerAvatar } from "../components/common/CustomerAvatar";
 import { Seo } from "../components/common/Seo";
-import { Breadcrumbs, EmptyState, InputField, LoadingState, SectionIntro, SelectField, SuccessInline, TextAreaField } from "../components/common/Ui";
+import { Breadcrumbs, EmptyState, InputField, LoadingState, SectionIntro, SelectField, SuccessInline } from "../components/common/Ui";
 import { coupons } from "../constants/site";
-import { mockUser } from "../data/catalog";
+import { useCustomerAuth } from "../customer/CustomerAuth";
 import { useAsyncData } from "../hooks/useAsyncData";
 import { calculateCustomizationCharge } from "../lib/pricing";
-import { storefrontService } from "../services/api";
+import { accountService, storefrontService } from "../services/api";
 import { useAppStore } from "../store/useAppStore";
+import type { Address, SavedCustomDesign } from "../types/models";
 import { currencyFormatter } from "../utils/format";
 
-const authSchema = z.object({
-  name: z.string().min(2).optional(),
-  email: z.string().email(),
-  phone: z.string().min(10).optional(),
-  password: z.string().min(6)
-});
+const securePassword = z.string().min(8, "Use at least 8 characters.").max(128)
+  .regex(/[A-Za-z]/, "Include at least one letter.").regex(/\d/, "Include at least one number.");
+const loginSchema = z.object({ email: z.string().trim().email(), password: z.string().min(1, "Enter your password.") });
+const registerSchema = z.object({
+  name: z.string().trim().min(2, "Enter your full name.").max(160),
+  email: z.string().trim().email(), phone: z.string().trim().min(10, "Enter a valid mobile number.").max(32),
+  password: securePassword, confirmPassword: z.string(),
+  acceptedTerms: z.boolean().refine((value) => value, "Please accept the Terms & Conditions and acknowledge the Privacy Policy.")
+}).refine((values) => values.password === values.confirmPassword, { path: ["confirmPassword"], message: "Passwords do not match." });
 
 const forgotSchema = z.object({
   email: z.string().email()
 });
+const resetPasswordSchema = z.object({ password: securePassword, confirmPassword: z.string() })
+  .refine((values) => values.password === values.confirmPassword, { path: ["confirmPassword"], message: "Passwords do not match." });
+const profileSchema = z.object({ name: z.string().trim().min(2).max(160), phone: z.string().trim().min(10).max(32) });
+const managedAddressSchema = z.object({
+  label: z.enum(["Home", "Office"]), recipient: z.string().trim().min(2), phone: z.string().trim().min(10),
+  line1: z.string().trim().min(5), line2: z.string().trim().optional(), landmark: z.string().trim().optional(),
+  city: z.string().trim().min(2), state: z.string().trim().min(2), pinCode: z.string().trim().regex(/^\d{6}$/, "Enter a valid 6-digit PIN code."),
+  country: z.string().trim().min(2), isDefault: z.boolean()
+});
+const changePasswordSchema = z.object({ currentPassword: z.string().min(1), newPassword: securePassword, confirmPassword: z.string() })
+  .refine((values) => values.newPassword === values.confirmPassword, { path: ["confirmPassword"], message: "Passwords do not match." });
 
 const trackingSchema = z.object({
   orderNumber: z.string().trim().min(6),
@@ -43,14 +60,28 @@ const addressSchema = z.object({
   country: z.string().min(2)
 });
 
-const reviewSchema = z.object({
-  title: z.string().min(3),
-  rating: z.string().min(1),
-  comment: z.string().min(15)
-});
-
 function useStoreProducts() {
   return useAsyncData(() => storefrontService.getNormalizedProducts(), []);
+}
+
+function submitHostedPayment(action: string, params: Record<string, string>) {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = action;
+  form.style.display = "none";
+  Object.entries(params).forEach(([name, value]) => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  });
+  document.body.appendChild(form);
+  form.submit();
+}
+
+function paymentMethodLabel(method: string) {
+  return method === "payu" ? "PayU Hosted Checkout" : method === "cod" ? "Cash on delivery" : method;
 }
 
 function escapeInvoiceText(value: unknown) {
@@ -64,12 +95,12 @@ function downloadInvoice(order: import("../types/models").Order) {
     `<tr><td>${escapeInvoiceText(item.productId)}</td><td>${item.quantity}</td><td>${currencyFormatter.format(item.price)}</td></tr>`
   ).join("");
   const documentHtml = `<!doctype html><html><head><meta charset="utf-8"><title>${order.invoiceNumber ?? order.orderNumber}</title>
-    <style>body{font-family:Arial,sans-serif;max-width:760px;margin:40px auto;color:#111}h1{margin-bottom:4px}table{width:100%;border-collapse:collapse;margin:24px 0}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}.total{font-size:20px;font-weight:700}</style></head>
+    <style>body{font-family:Manrope,sans-serif;max-width:760px;margin:40px auto;color:#07163d}h1{margin-bottom:4px}table{width:100%;border-collapse:collapse;margin:24px 0}th,td{padding:10px;border-bottom:1px solid #d5dce3;text-align:left}.total{font-size:20px;font-weight:700}</style></head>
     <body><h1>Fabpodd</h1><p>Invoice ${order.invoiceNumber ?? order.orderNumber}</p><p>Order ${order.orderNumber} · ${new Date(order.createdAt).toLocaleDateString("en-IN")}</p>
     <p>Deliver to: ${escapeInvoiceText(order.address.recipient)}, ${escapeInvoiceText(order.address.line1)}, ${escapeInvoiceText(order.address.city)}, ${escapeInvoiceText(order.address.state)} ${escapeInvoiceText(order.address.pinCode)}</p>
     <table><thead><tr><th>Product reference</th><th>Quantity</th><th>Amount</th></tr></thead><tbody>${lines}</tbody></table>
     <p>Subtotal: ${currencyFormatter.format(order.subtotal)}</p><p>Shipping: ${currencyFormatter.format(order.shipping)}</p><p>Discount: ${currencyFormatter.format(order.discount)}</p>
-    <p class="total">Total: ${currencyFormatter.format(order.total)}</p><p>Payment: ${order.paymentMethod} (${order.paymentStatus ?? "Pending"})</p></body></html>`;
+    <p class="total">Total: ${currencyFormatter.format(order.total)}</p><p>Payment: ${paymentMethodLabel(order.paymentMethod)} (${order.paymentStatus ?? "Pending"})</p></body></html>`;
   const url = URL.createObjectURL(new Blob([documentHtml], { type: "text/html;charset=utf-8" }));
   const link = document.createElement("a");
   link.href = url;
@@ -207,7 +238,10 @@ export function CartPage() {
                     type="button"
                     className="button-secondary w-full shrink-0 sm:w-auto"
                     onClick={() => {
-                      if (applyCoupon(couponCode)) {
+                      const requestedCoupon = coupons.find((entry) => entry.code.toLowerCase() === couponCode.trim().toLowerCase());
+                      if (requestedCoupon && subtotal < requestedCoupon.minimumOrderValue) {
+                        toast.error(`This coupon requires a minimum order of ${currencyFormatter.format(requestedCoupon.minimumOrderValue)}.`);
+                      } else if (applyCoupon(couponCode)) {
                         toast.success("Coupon applied");
                       } else {
                         toast.error("Invalid coupon code");
@@ -268,20 +302,20 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const { data: products, loading, error } = useStoreProducts();
   const productList = products ?? [];
-  const user = useAppStore((state) => state.user) ?? mockUser;
+  const user = useAppStore((state) => state.user);
   const cart = useAppStore((state) => state.cart);
   const completeOrder = useAppStore((state) => state.completeOrder);
-  const addAddress = useAppStore((state) => state.addAddress);
+  const setAddresses = useAppStore((state) => state.setAddresses);
   const checkoutItems = cart.filter((item) => !item.savedForLater);
   const [step, setStep] = useState(1);
-  const [selectedPayment] = useState<"Cash on delivery">("Cash on delivery");
-  const [selectedAddress, setSelectedAddress] = useState(user.addresses[0]?.id ?? "");
+  const [selectedPayment, setSelectedPayment] = useState<"cod" | "payu">("payu");
+  const [selectedAddress, setSelectedAddress] = useState(user?.addresses[0]?.id ?? "");
   const [orderNumber, setOrderNumber] = useState("");
   const [placingOrder, setPlacingOrder] = useState(false);
 
   const form = useForm<z.infer<typeof addressSchema>>({
     resolver: zodResolver(addressSchema),
-    defaultValues: user.addresses[0]
+    defaultValues: user?.addresses[0]
   });
 
   const subtotal = checkoutItems.reduce((sum, item) => {
@@ -298,11 +332,19 @@ export function CheckoutPage() {
     return <div className="container-shell py-20"><EmptyState title="Checkout unavailable" description={error ?? "Products could not be loaded for checkout."} /></div>;
   }
 
-  const submitAddress = form.handleSubmit((values) => {
-    const id = `address-${Date.now()}`;
-    addAddress({ ...values, id, label: "New address" });
-    setSelectedAddress(id);
-    setStep(3);
+  if (!user) {
+    return <div className="container-shell py-20"><EmptyState title="Sign in to checkout" description="Your account keeps delivery addresses and orders securely connected." action={<Link to="/login" state={{ from: "/checkout" }} className="button-primary">Sign in</Link>} /></div>;
+  }
+
+  const submitAddress = form.handleSubmit(async (values) => {
+    try {
+      const addresses = await accountService.createAddress({ ...values, label: "Home", isDefault: user.addresses.length === 0 });
+      setAddresses(addresses);
+      setSelectedAddress(addresses[0]?.id ?? "");
+      setStep(3);
+    } catch (addressError) {
+      toast.error(addressError instanceof Error ? addressError.message : "The address could not be saved.");
+    }
   });
 
   const activeAddress = user.addresses.find((address) => address.id === selectedAddress) ?? user.addresses[0];
@@ -313,12 +355,15 @@ export function CheckoutPage() {
       return;
     }
     setPlacingOrder(true);
+    let handedOffToPayu = false;
     try {
+      const activeCoupon = useAppStore.getState().activeCoupon;
+      const eligibleCoupon = coupons.find((coupon) => coupon.code === activeCoupon && subtotal >= coupon.minimumOrderValue);
       const order = await storefrontService.createOrder({
         customer: { name: user.name, email: user.email, phone: activeAddress.phone },
         address: activeAddress,
         paymentMethod: selectedPayment,
-        couponCode: useAppStore.getState().activeCoupon,
+        couponCode: eligibleCoupon?.code,
         items: checkoutItems.map((item) => item.customisation ? ({
           type: "CUSTOMISED_PRODUCT" as const,
           customProductId: item.customisation.customProductId,
@@ -338,19 +383,36 @@ export function CheckoutPage() {
           customerNote: item.customisation.customerNote
         }) : ({
           type: "STANDARD_PRODUCT" as const, productId: item.productId,
-          variantId: item.variantId === item.productId ? undefined : item.variantId,
+          // Persisted carts may still contain the old synthetic fallback id
+          // (`<product UUID>-0-0`). Only send IDs the API can accept as UUIDs.
+          variantId: item.variantId !== item.productId && z.string().uuid().safeParse(item.variantId).success
+            ? item.variantId
+            : undefined,
           selectedColor: item.selectedColor ?? item.customization?.productColor,
           selectedSize: item.selectedSize ?? item.customization?.size,
           quantity: item.quantity, customization: item.customization
         }))
       });
       completeOrder(order);
+      if (selectedPayment === "payu") {
+        try {
+          const payment = await storefrontService.initiatePayu(order.id);
+          submitHostedPayment(payment.action, payment.params);
+          handedOffToPayu = true;
+          return;
+        } catch (paymentError) {
+          const query = new URLSearchParams({ orderId: order.id, orderNumber: order.orderNumber });
+          toast.error(paymentError instanceof Error ? paymentError.message : "Payment could not be started.");
+          navigate(`/payment-failed?${query.toString()}`);
+          return;
+        }
+      }
       setOrderNumber(order.orderNumber);
       setStep(6);
     } catch (orderError) {
       toast.error(orderError instanceof Error ? orderError.message : "The order could not be placed.");
     } finally {
-      setPlacingOrder(false);
+      if (!handedOffToPayu) setPlacingOrder(false);
     }
   };
 
@@ -432,18 +494,35 @@ export function CheckoutPage() {
               <div className="space-y-4">
                 <p className="text-sm font-semibold">Payment</p>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-[24px] border border-brand-black bg-brand-grey px-4 py-4 text-left">
-                    Cash on delivery
-                  </div>
+                  {(["payu", "cod"] as const).map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      aria-pressed={selectedPayment === method}
+                      onClick={() => setSelectedPayment(method)}
+                      className={`min-h-16 rounded-2xl border px-4 py-4 text-left transition-colors ${selectedPayment === method ? "border-brand-black bg-brand-black text-white" : "border-black/10 bg-brand-grey text-brand-black hover:border-brand-cyan"}`}
+                    >
+                      <span className="block font-semibold">{method === "payu" ? "Pay securely with PayU" : "Cash on delivery"}</span>
+                      <span className={`mt-1 block text-xs ${selectedPayment === method ? "text-white/70" : "text-brand-black/60"}`}>
+                        {method === "payu" ? "Cards, UPI, net banking and supported wallets" : "Pay when your order is delivered"}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-                <p className="text-sm leading-7 text-brand-black/60">Online payment methods will appear only after the production payment gateway and webhook verification are configured.</p>
+                <p className="text-sm leading-7 text-brand-black/60">
+                  {selectedPayment === "payu"
+                    ? "PayU opens its secure hosted checkout. FabPodd never receives or stores your card or CVV details."
+                    : "Your order will be confirmed now and payment will be collected when it is delivered."}
+                </p>
                 <button
                   type="button"
                   className="button-primary"
                   disabled={placingOrder}
                   onClick={() => void submitOrder()}
                 >
-                  {placingOrder ? "Placing order..." : "Place order"}
+                  {placingOrder
+                    ? selectedPayment === "payu" ? "Preparing payment..." : "Placing order..."
+                    : selectedPayment === "payu" ? "Pay now" : "Place order"}
                 </button>
               </div>
             ) : null}
@@ -465,7 +544,7 @@ export function CheckoutPage() {
             <div className="mt-5 space-y-3 text-sm text-white/74">
               <div className="flex justify-between"><span>Items subtotal</span><span>{currencyFormatter.format(subtotal)}</span></div>
               <div className="flex justify-between"><span>Estimated shipping</span><span>{subtotal >= 999 ? "Free" : currencyFormatter.format(99)}</span></div>
-              <div className="flex justify-between"><span>Payment method</span><span>{selectedPayment}</span></div>
+              <div className="flex justify-between"><span>Payment method</span><span>{paymentMethodLabel(selectedPayment)}</span></div>
             </div>
             <div className="mt-6 rounded-[24px] bg-white/8 p-4 text-sm text-white/70">
               {activeAddress ? (
@@ -485,67 +564,273 @@ export function CheckoutPage() {
   );
 }
 
-export function AuthPage() {
-  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
-  const login = useAppStore((state) => state.login);
-  const form = useForm<z.infer<typeof authSchema>>({
-    resolver: zodResolver(authSchema),
-    defaultValues: { email: mockUser.email, password: "password123", name: mockUser.name, phone: mockUser.phone }
-  });
-  const forgotForm = useForm<z.infer<typeof forgotSchema>>({
-    resolver: zodResolver(forgotSchema)
-  });
+export function PaymentSuccessPage() {
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get("orderId") || "";
+  const [payment, setPayment] = useState<{ orderNumber: string; paymentStatus: string } | null>(null);
+  const [verificationError, setVerificationError] = useState("");
 
-  const submitAuth = form.handleSubmit((values) => {
-    login({ email: values.email, name: values.name ?? "Guest User", phone: values.phone ?? mockUser.phone });
-    toast.success(mode === "signup" ? "Account created" : "Signed in");
-  });
+  useEffect(() => {
+    let active = true;
+    if (!orderId) {
+      setVerificationError("This payment link is missing its order reference.");
+      return () => { active = false; };
+    }
+    void storefrontService.getPayuStatus(orderId)
+      .then((result) => { if (active) setPayment(result); })
+      .catch((error) => { if (active) setVerificationError(error instanceof Error ? error.message : "Payment status could not be verified."); });
+    return () => { active = false; };
+  }, [orderId]);
 
-  const submitForgot = forgotForm.handleSubmit(() => {
-    toast.success("Password reset link sent");
-    forgotForm.reset();
-  });
+  const confirmed = payment?.paymentStatus === "Paid";
+  const heading = confirmed ? "Payment confirmed" : payment ? "Payment confirmation pending" : verificationError ? "Payment not verified" : "Verifying payment";
+  const description = confirmed
+    ? "Your payment was verified and the order is now confirmed for fulfilment."
+    : payment
+      ? "We have your order, but PayU has not confirmed the payment yet. Check your order again shortly."
+      : verificationError || "Checking the secure payment response before confirming your order.";
 
   return (
     <>
-      <Seo title="Login" description="Customer login, signup and forgot-password flows with validation." path="/login" />
+      <Seo title={confirmed ? "Payment successful" : "Payment status"} description={description} path="/payment-success" />
+      <main className="container-shell py-12 pb-28 sm:py-20">
+        <section className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-white shadow-card">
+          <div className="bg-brand-black px-6 py-10 text-white sm:px-10">
+            {confirmed ? <PackageCheck className="h-12 w-12 text-brand-cyan" aria-hidden="true" /> : <XCircle className="h-12 w-12 text-brand-cyan" aria-hidden="true" />}
+            <h1 className="mt-6 max-w-xl font-heading text-4xl font-extrabold tracking-[-0.03em] sm:text-5xl">{heading}</h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/75" role="status">{description}</p>
+          </div>
+          <div className="px-6 py-8 sm:px-10">
+            <p className="text-sm font-semibold text-brand-black/60">Order number</p>
+            <p className="mt-2 font-heading text-2xl font-extrabold tabular-nums text-brand-black">{payment?.orderNumber ?? "—"}</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link to="/account" className="button-primary">View order history</Link>
+              <Link to="/track-order" className="button-secondary">Track order</Link>
+              {payment && !confirmed ? <Link to={`/payment-failed?${new URLSearchParams({ orderId, orderNumber: payment.orderNumber }).toString()}`} className="button-secondary">Retry payment</Link> : null}
+            </div>
+          </div>
+        </section>
+      </main>
+    </>
+  );
+}
+
+export function PaymentFailedPage() {
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get("orderId") || "";
+  const orderNumber = searchParams.get("orderNumber") || "your order";
+  const [retrying, setRetrying] = useState(false);
+
+  const retryPayment = async () => {
+    if (!orderId) {
+      toast.error("The order reference is missing. Open the order from your account and try again.");
+      return;
+    }
+    setRetrying(true);
+    try {
+      const payment = await storefrontService.initiatePayu(orderId);
+      submitHostedPayment(payment.action, payment.params);
+    } catch (paymentError) {
+      toast.error(paymentError instanceof Error ? paymentError.message : "Payment could not be restarted.");
+      setRetrying(false);
+    }
+  };
+
+  return (
+    <>
+      <Seo title="Payment unsuccessful" description="Retry payment for your existing FabPodd order." path="/payment-failed" />
+      <main className="container-shell py-12 pb-28 sm:py-20">
+        <section className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-white shadow-card">
+          <div className="bg-brand-black px-6 py-10 text-white sm:px-10">
+            <XCircle className="h-12 w-12 text-red-300" aria-hidden="true" />
+            <h1 className="mt-6 max-w-xl font-heading text-4xl font-extrabold tracking-[-0.03em] sm:text-5xl">Payment wasn’t completed</h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-white/75">Your order is still saved. Retry payment below—no duplicate order will be created.</p>
+          </div>
+          <div className="px-6 py-8 sm:px-10">
+            <p className="text-sm font-semibold text-brand-black/60">Order number</p>
+            <p className="mt-2 font-heading text-2xl font-extrabold tabular-nums text-brand-black">{orderNumber}</p>
+            {!orderId ? <p className="mt-4 text-sm leading-6 text-red-700">This payment link is missing its order reference. Open the saved order from your account to continue.</p> : null}
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button type="button" className="button-primary" disabled={retrying || !orderId} onClick={() => void retryPayment()}>
+                {retrying ? "Opening PayU..." : "Retry payment"}
+              </button>
+              <Link to="/account" className="button-secondary">View order</Link>
+            </div>
+          </div>
+        </section>
+      </main>
+    </>
+  );
+}
+
+export function AuthPage() {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { refresh } = useCustomerAuth();
+  const requestedMode = searchParams.get("mode");
+  const routeMode = location.pathname === "/register" ? "signup" : location.pathname === "/forgot-password" ? "forgot" : location.pathname === "/reset-password" ? "reset" : null;
+  const initialMode = routeMode ?? (requestedMode === "signup" || requestedMode === "forgot" ? requestedMode : "login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot" | "reset">(initialMode);
+  const [busy, setBusy] = useState(false);
+  const [developmentResetUrl, setDevelopmentResetUrl] = useState("");
+  const googleEnabled = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim());
+  const isSetPassword = mode === "reset" && searchParams.get("purpose") === "set";
+  const loginForm = useForm<z.infer<typeof loginSchema>>({ resolver: zodResolver(loginSchema), defaultValues: { email: "", password: "" } });
+  const registerForm = useForm<z.infer<typeof registerSchema>>({ resolver: zodResolver(registerSchema), defaultValues: { name: "", email: "", phone: "", password: "", confirmPassword: "", acceptedTerms: false } });
+  const forgotForm = useForm<z.infer<typeof forgotSchema>>({
+    resolver: zodResolver(forgotSchema)
+  });
+  const resetForm = useForm<z.infer<typeof resetPasswordSchema>>({ resolver: zodResolver(resetPasswordSchema), defaultValues: { password: "", confirmPassword: "" } });
+
+  const finishAuthentication = async (message: string) => {
+    await refresh();
+    toast.success(message);
+    const destination = (location.state as { from?: string } | null)?.from || "/account";
+    navigate(destination, { replace: true });
+  };
+
+  const submitLogin = loginForm.handleSubmit(async (values) => {
+    setBusy(true);
+    try { await accountService.login(values); await finishAuthentication("Signed in successfully."); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Sign in failed."); }
+    finally { setBusy(false); }
+  });
+
+  const submitRegistration = registerForm.handleSubmit(async (values) => {
+    setBusy(true);
+    try { await accountService.register(values); await finishAuthentication("Your FabPodd account is ready."); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Account creation failed."); }
+    finally { setBusy(false); }
+  });
+
+  const submitGoogle = async (response: CredentialResponse) => {
+    if (mode === "signup" && !registerForm.getValues("acceptedTerms")) {
+      registerForm.setError("acceptedTerms", { message: "Please accept the Terms & Conditions and acknowledge the Privacy Policy." });
+      toast.error("Please review and accept the legal terms before creating an account.");
+      return;
+    }
+    if (!response.credential) {
+      toast.error("Google did not return a sign-in credential. Please try again.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await accountService.googleLogin(response.credential);
+      await finishAuthentication("Signed in securely with Google.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Google sign-in failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitForgot = forgotForm.handleSubmit(async ({ email }) => {
+    setBusy(true); setDevelopmentResetUrl("");
+    try { const result = await accountService.forgotPassword(email); setDevelopmentResetUrl(result.developmentResetUrl ?? ""); toast.success(result.message); forgotForm.reset(); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "The reset email could not be sent."); }
+    finally { setBusy(false); }
+  });
+
+  const submitReset = resetForm.handleSubmit(async (values) => {
+    const token = searchParams.get("token");
+    if (!token) { toast.error("This reset link is missing its secure token."); return; }
+    setBusy(true);
+    try { const result = await accountService.resetPassword({ token, ...values }); toast.success(isSetPassword ? "Your password is set. You can now sign in with Google or email." : result.message); navigate("/login", { replace: true }); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Password reset failed."); }
+    finally { setBusy(false); }
+  });
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
+  const selectMode = (nextMode: "login" | "signup" | "forgot") => {
+    setMode(nextMode);
+    navigate(nextMode === "login" ? "/login" : nextMode === "signup" ? "/register" : "/forgot-password", { replace: true });
+  };
+
+  const authModes: Array<{ value: "login" | "signup" | "forgot"; label: string }> = [
+    { value: "login", label: "Sign in" },
+    { value: "signup", label: "Create account" },
+    { value: "forgot", label: "Reset password" }
+  ];
+
+  return (
+    <>
+      <Seo title={mode === "signup" ? "Create account" : mode === "reset" ? isSetPassword ? "Set password" : "Reset password" : "Sign in"} description="Secure access to your FabPodd orders, wishlist, saved designs and addresses." path={location.pathname} />
       <div className="container-shell py-8 pb-28">
-        <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Login" }]} />
+        <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Sign in" }]} />
         <div className="grid gap-8 rounded-[36px] bg-white p-8 shadow-card lg:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[32px] bg-brand-black p-8 text-white">
             <div className="inline-flex rounded-[22px] bg-white px-4 py-3">
               <BrandLogo className="h-16 w-[176px]" />
             </div>
-            <h1 className="mt-6 font-heading text-4xl font-extrabold">Sign in to manage orders, wishlist and custom designs.</h1>
+            <h1 className="mt-6 font-heading text-4xl font-extrabold">Your orders, saved ideas and delivery details—together.</h1>
             <p className="mt-4 text-base leading-8 text-white/72">
-              The auth layer is mocked for frontend behaviour and can be swapped for a real backend later.
+              Sign in securely to continue a design, revisit favourites, manage addresses and follow every order.
             </p>
           </div>
           <div>
-            <div className="flex gap-3">
-              {["login", "signup", "forgot"].map((value) => (
+            <div className="flex flex-wrap gap-3" aria-label="Account access options">
+              {mode !== "reset" ? authModes.map(({ value, label }) => (
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setMode(value as typeof mode)}
+                  aria-pressed={mode === value}
+                  onClick={() => selectMode(value)}
                   className={`rounded-full px-4 py-3 text-sm font-semibold ${mode === value ? "bg-brand-black text-white" : "bg-brand-grey text-brand-black"}`}
                 >
-                  {value}
+                  {label}
                 </button>
-              ))}
+              )) : <Link to="/login" className="button-secondary">Back to sign in</Link>}
             </div>
-            {mode !== "forgot" ? (
-              <form onSubmit={submitAuth} className="mt-6 grid gap-5">
-                {mode === "signup" ? <InputField label="Name" register={form.register("name")} error={form.formState.errors.name} /> : null}
-                <InputField label="Email" type="email" register={form.register("email")} error={form.formState.errors.email} />
-                {mode === "signup" ? <InputField label="Phone" register={form.register("phone")} error={form.formState.errors.phone} /> : null}
-                <InputField label="Password" type="password" register={form.register("password")} error={form.formState.errors.password} />
-                <button type="submit" className="button-primary">{mode === "signup" ? "Create account" : "Login"}</button>
+            {(mode === "login" || mode === "signup") && googleEnabled ? (
+              <div className={`mt-6 ${busy ? "pointer-events-none opacity-60" : ""}`} aria-busy={busy}>
+                {mode === "signup" ? <LegalAcceptance registerForm={registerForm} /> : null}
+                <div className="flex min-h-11 justify-center overflow-hidden rounded-full">
+                  <GoogleLogin
+                    onSuccess={(response) => void submitGoogle(response)}
+                    onError={() => toast.error("Google sign-in was cancelled or could not be completed.")}
+                    text="continue_with"
+                    shape="pill"
+                    size="large"
+                    theme="outline"
+                    useOneTap={false}
+                  />
+                </div>
+                <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.12em] text-brand-muted" aria-hidden="true">
+                  <span className="h-px flex-1 bg-black/10" /><span>or use email</span><span className="h-px flex-1 bg-black/10" />
+                </div>
+              </div>
+            ) : null}
+            {mode === "login" ? (
+              <form onSubmit={submitLogin} className="mt-6 grid gap-5">
+                <InputField label="Email" type="email" register={loginForm.register("email")} error={loginForm.formState.errors.email} />
+                <InputField label="Password" type="password" register={loginForm.register("password")} error={loginForm.formState.errors.password} />
+                <button type="submit" disabled={busy} className="button-primary disabled:cursor-not-allowed disabled:opacity-60">{busy ? "Signing in…" : "Sign in"}</button>
               </form>
-            ) : (
+            ) : mode === "signup" ? (
+              <form onSubmit={submitRegistration} className="mt-6 grid gap-5">
+                <InputField label="Full name" register={registerForm.register("name")} error={registerForm.formState.errors.name} />
+                <InputField label="Email" type="email" register={registerForm.register("email")} error={registerForm.formState.errors.email} />
+                <InputField label="Mobile number" type="tel" register={registerForm.register("phone")} error={registerForm.formState.errors.phone} />
+                <InputField label="Password" type="password" register={registerForm.register("password")} error={registerForm.formState.errors.password} />
+                <InputField label="Confirm password" type="password" register={registerForm.register("confirmPassword")} error={registerForm.formState.errors.confirmPassword} />
+                {!googleEnabled ? <LegalAcceptance registerForm={registerForm} /> : null}
+                <button type="submit" disabled={busy} className="button-primary disabled:cursor-not-allowed disabled:opacity-60">{busy ? "Creating account…" : "Create account"}</button>
+              </form>
+            ) : mode === "forgot" ? (
               <form onSubmit={submitForgot} className="mt-6 grid gap-5">
                 <InputField label="Email" type="email" register={forgotForm.register("email")} error={forgotForm.formState.errors.email} />
-                <button type="submit" className="button-primary">Send reset link</button>
+                <button type="submit" disabled={busy} className="button-primary disabled:cursor-not-allowed disabled:opacity-60">{busy ? "Sending…" : "Send secure reset link"}</button>
+                {developmentResetUrl ? <a className="text-sm font-semibold text-brand-cyan-dark underline" href={developmentResetUrl}>Open development reset link</a> : null}
+              </form>
+            ) : (
+              <form onSubmit={submitReset} className="mt-6 grid gap-5">
+                <InputField label={isSetPassword ? "Password" : "New password"} type="password" register={resetForm.register("password")} error={resetForm.formState.errors.password} />
+                <InputField label={isSetPassword ? "Confirm password" : "Confirm new password"} type="password" register={resetForm.register("confirmPassword")} error={resetForm.formState.errors.confirmPassword} />
+                <button type="submit" disabled={busy} className="button-primary disabled:cursor-not-allowed disabled:opacity-60">{busy ? isSetPassword ? "Setting password…" : "Resetting…" : isSetPassword ? "Set password" : "Reset password"}</button>
               </form>
             )}
           </div>
@@ -555,80 +840,176 @@ export function AuthPage() {
   );
 }
 
+function LegalAcceptance({ registerForm }: { registerForm: ReturnType<typeof useForm<z.infer<typeof registerSchema>>> }) {
+  const error = registerForm.formState.errors.acceptedTerms;
+  return (
+    <div className="mb-5">
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-brand-soft p-4 text-sm leading-6 text-brand-charcoal">
+        <input type="checkbox" {...registerForm.register("acceptedTerms")} className="mt-1 h-4 w-4 shrink-0 accent-brand-cyan" />
+        <span>I agree to the <Link to="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-cyan-dark underline underline-offset-4">Terms & Conditions</Link> and acknowledge the <Link to="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-semibold text-brand-cyan-dark underline underline-offset-4">Privacy Policy</Link>.</span>
+      </label>
+      {error ? <p className="mt-2 text-sm font-medium text-red-700" role="alert">{error.message}</p> : null}
+    </div>
+  );
+}
+
 export function AccountPage() {
-  const location = useLocation();
-  const { data: products, loading } = useStoreProducts();
+  const { section } = useParams();
+  const navigate = useNavigate();
+  const { data: products, loading: productsLoading } = useStoreProducts();
   const productList = products ?? [];
-  const user = useAppStore((state) => state.user) ?? mockUser;
+  const user = useAppStore((state) => state.user)!;
   const wishlist = useAppStore((state) => state.wishlist);
   const orders = useAppStore((state) => state.orders);
-  const [reviewSubmitted, setReviewSubmitted] = useState(false);
-  const reviewForm = useForm<z.infer<typeof reviewSchema>>({
-    resolver: zodResolver(reviewSchema)
-  });
-  const activeTab = location.hash.replace("#", "") || "profile";
-  const wishedProducts = productList.length
-    ? wishlist.map((item) => productList.find((product) => product.id === item.productId)).filter(Boolean)
-    : [];
+  const setUser = useAppStore((state) => state.setUser);
+  const setAddresses = useAppStore((state) => state.setAddresses);
+  const setWishlist = useAppStore((state) => state.setWishlist);
+  const logout = useAppStore((state) => state.logout);
+  const addToCart = useAppStore((state) => state.addToCart);
+  const [summary, setSummary] = useState({ orders: orders.length, wishlist: wishlist.length, designs: 0, addresses: user.addresses.length });
+  const [designs, setDesigns] = useState<SavedCustomDesign[]>([]);
+  const [loadingAccount, setLoadingAccount] = useState(true);
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [settingPassword, setSettingPassword] = useState(false);
+  const [developmentSetPasswordUrl, setDevelopmentSetPasswordUrl] = useState("");
+  const activeTab = section ?? "overview";
 
-  const submitReview = reviewForm.handleSubmit(() => {
-    setReviewSubmitted(true);
-    reviewForm.reset();
+  const profileForm = useForm<z.infer<typeof profileSchema>>({ resolver: zodResolver(profileSchema), defaultValues: { name: user.name, phone: user.phone } });
+  const addressForm = useForm<z.infer<typeof managedAddressSchema>>({ resolver: zodResolver(managedAddressSchema), defaultValues: { label: "Home", recipient: user.name, phone: user.phone, line1: "", line2: "", landmark: "", city: "", state: "", pinCode: "", country: "India", isDefault: false } });
+  const securityForm = useForm<z.infer<typeof changePasswordSchema>>({ resolver: zodResolver(changePasswordSchema), defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" } });
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([accountService.getSummary(), accountService.getDesigns()])
+      .then(([nextSummary, nextDesigns]) => { if (active) { setSummary(nextSummary); setDesigns(nextDesigns); } })
+      .catch((loadError) => { if (active) toast.error(loadError instanceof Error ? loadError.message : "Account information could not be loaded."); })
+      .finally(() => { if (active) setLoadingAccount(false); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => { profileForm.reset({ name: user.name, phone: user.phone }); }, [profileForm, user.name, user.phone]);
+
+  const wishedProducts = wishlist.map((item) => productList.find((product) => product.id === item.productId)).filter(Boolean);
+  const submitProfile = profileForm.handleSubmit(async (values) => {
+    try { const updated = await accountService.updateProfile(values); setUser(updated); toast.success("Profile updated."); }
+    catch (profileError) { toast.error(profileError instanceof Error ? profileError.message : "Profile could not be updated."); }
   });
+  const uploadAvatar = async (file?: File) => {
+    if (!file) return;
+    try { const updated = await accountService.uploadAvatar(file); setUser(updated); toast.success("Profile picture updated."); }
+    catch (avatarError) { toast.error(avatarError instanceof Error ? avatarError.message : "Profile picture could not be uploaded."); }
+  };
+  const openAddressForm = (address?: Address) => {
+    setEditingAddress(address ?? null); setShowAddressForm(true);
+    addressForm.reset(address ? { label: address.label === "Office" ? "Office" : "Home", recipient: address.recipient, phone: address.phone, line1: address.line1, line2: address.line2 ?? "", landmark: address.landmark ?? "", city: address.city, state: address.state, pinCode: address.pinCode, country: address.country, isDefault: Boolean(address.isDefault) } : { label: "Home", recipient: user.name, phone: user.phone, line1: "", line2: "", landmark: "", city: "", state: "", pinCode: "", country: "India", isDefault: user.addresses.length === 0 });
+  };
+  const submitAddress = addressForm.handleSubmit(async (values) => {
+    try {
+      const addresses = editingAddress ? await accountService.updateAddress(editingAddress.id, values) : await accountService.createAddress(values);
+      setAddresses(addresses); setShowAddressForm(false); setEditingAddress(null); toast.success(editingAddress ? "Address updated." : "Address added.");
+    } catch (addressError) { toast.error(addressError instanceof Error ? addressError.message : "Address could not be saved."); }
+  });
+  const removeAddress = async (id: string) => {
+    try { setAddresses(await accountService.deleteAddress(id)); toast.success("Address removed."); }
+    catch (addressError) { toast.error(addressError instanceof Error ? addressError.message : "Address could not be removed."); }
+  };
+  const makeDefaultAddress = async (id: string) => {
+    try { setAddresses(await accountService.setDefaultAddress(id)); toast.success("Default address updated."); }
+    catch (addressError) { toast.error(addressError instanceof Error ? addressError.message : "Default address could not be updated."); }
+  };
+  const removeWishlistItem = async (productId: string) => {
+    try { await accountService.removeWishlist(productId); setWishlist(wishlist.filter((item) => item.productId !== productId)); }
+    catch (wishlistError) { toast.error(wishlistError instanceof Error ? wishlistError.message : "Wishlist could not be updated."); }
+  };
+  const deleteDesign = async (id: string) => {
+    try { await accountService.deleteDesign(id); setDesigns((items) => items.filter((item) => item.id !== id)); setSummary((value) => ({ ...value, designs: Math.max(0, value.designs - 1) })); }
+    catch (designError) { toast.error(designError instanceof Error ? designError.message : "Design could not be removed."); }
+  };
+  const submitPassword = securityForm.handleSubmit(async (values) => {
+    try { const result = await accountService.changePassword(values); toast.success(result.message); logout(); navigate("/login", { replace: true }); }
+    catch (passwordError) { toast.error(passwordError instanceof Error ? passwordError.message : "Password could not be changed."); }
+  });
+  const requestSetPassword = async () => {
+    setSettingPassword(true); setDevelopmentSetPasswordUrl("");
+    try {
+      const result = await accountService.requestSetPassword();
+      setDevelopmentSetPasswordUrl(result.developmentResetUrl ?? "");
+      toast.success(result.message);
+    } catch (passwordError) {
+      toast.error(passwordError instanceof Error ? passwordError.message : "The verification email could not be sent.");
+    } finally { setSettingPassword(false); }
+  };
+
+  const navItems = [
+    ["overview", "Overview", UserRound], ["profile", "My Profile", UserRound], ["orders", "My Orders", Package],
+    ["wishlist", "My Wishlist", Heart], ["designs", "My Custom Designs", Palette], ["addresses", "Saved Addresses", MapPin], ["security", user.hasPassword ? "Change Password" : "Set Password", LockKeyhole]
+  ] as const;
+  const overviewCards = [
+    { label: "Orders", value: summary.orders, to: "/account/orders", icon: Package },
+    { label: "Wishlist", value: summary.wishlist, to: "/account/wishlist", icon: Heart },
+    { label: "Saved designs", value: summary.designs, to: "/account/designs", icon: Palette },
+    { label: "Addresses", value: summary.addresses, to: "/account/addresses", icon: MapPin }
+  ];
 
   return (
     <>
       <Seo title="My Account" description="Profile, addresses, wishlist, order history, returns and review submission in one account area." path="/account" />
       <div className="container-shell py-8 pb-28">
-        <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Account" }]} />
-        <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
-          <aside className="rounded-[28px] bg-white p-5 shadow-card">
-            <nav className="space-y-2 text-sm font-semibold">
-              {["profile", "addresses", "wishlist", "orders", "reviews"].map((tab) => (
-                <Link key={tab} to={`/account#${tab}`} className={`block rounded-2xl px-4 py-3 ${activeTab === tab ? "bg-brand-black text-white" : "bg-brand-grey"}`}>
-                  {tab}
+        <div className="hidden md:block">
+          <Breadcrumbs items={[{ label: "Home", to: "/" }, { label: "Account" }]} />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+          <aside className={`self-start rounded-2xl bg-brand-black p-3 text-white lg:sticky lg:top-[calc(var(--total-header-height)+24px)] ${activeTab === "wishlist" ? "hidden lg:block" : ""}`}>
+            <div className="px-3 py-4"><p className="truncate font-heading text-xl font-bold">{user.name}</p><p className="truncate text-xs text-white/65">{user.email}</p></div>
+            <nav className="space-y-1 text-sm font-semibold">
+              {navItems.map(([tab, label, Icon]) => (
+                <Link key={tab} to={tab === "overview" ? "/account" : `/account/${tab}`} className={`flex min-h-11 items-center gap-3 rounded-xl px-3 ${activeTab === tab ? "bg-brand-cyan text-brand-black" : "text-white/80 hover:bg-white/10 hover:text-white"}`}>
+                  <Icon className="h-4 w-4" />{label}
                 </Link>
               ))}
             </nav>
           </aside>
 
           <section className="space-y-6">
+            {loadingAccount ? <LoadingState label="Loading your account" /> : null}
+            {activeTab === "overview" && !loadingAccount ? (
+              <div className="overflow-hidden rounded-2xl bg-white shadow-card">
+                <div className="bg-brand-black px-6 py-8 text-white sm:px-8"><h1 className="font-heading text-3xl font-extrabold sm:text-4xl">Welcome back, {user.firstName ?? user.name.split(" ")[0]}</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">Review orders, return to saved designs, and keep delivery details ready for checkout.</p></div>
+                <div className="grid gap-px bg-black/8 sm:grid-cols-2 xl:grid-cols-4">{overviewCards.map(({ label, value, to, icon: Icon }) => <Link key={label} to={to} className="bg-white p-6 transition hover:bg-brand-soft"><Icon className="h-5 w-5 text-brand-cyan-dark" /><strong className="mt-5 block font-heading text-3xl tabular-nums">{value}</strong><span className="mt-1 block text-sm text-brand-muted">{label}</span></Link>)}</div>
+              </div>
+            ) : null}
             {activeTab === "profile" ? (
-              <div className="rounded-[32px] bg-white p-6 shadow-card">
-                <SectionIntro title="Profile" description="Customer signup, profile management and account details are stored in the app state." />
-                <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                  <img src={user.avatar} alt={user.name} className="h-20 w-20 rounded-full object-cover" />
-                  <div>
-                    <h2 className="font-heading text-3xl font-bold">{user.name}</h2>
-                    <p className="text-sm text-brand-black/60">{user.email}</p>
-                    <p className="text-sm text-brand-black/60">{user.phone}</p>
-                  </div>
-                </div>
+              <div className="rounded-2xl bg-white p-6 shadow-card sm:p-8">
+                <SectionIntro title="My Profile" description="Keep your contact details current for order updates and delivery coordination." />
+                <div className="mb-8 flex flex-wrap items-center gap-5"><CustomerAvatar src={user.avatar} name={user.name} className="h-24 w-24" iconClassName="h-9 w-9" /><div><p className="font-semibold">Profile picture</p><label className="button-secondary mt-3 cursor-pointer"><Camera className="mr-2 h-4 w-4" />Upload image<input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => void uploadAvatar(event.target.files?.[0])} /></label></div></div>
+                <form onSubmit={submitProfile} className="grid gap-5 md:grid-cols-2"><InputField label="Full name" register={profileForm.register("name")} error={profileForm.formState.errors.name} /><InputField label="Mobile number" type="tel" register={profileForm.register("phone")} error={profileForm.formState.errors.phone} /><div className="md:col-span-2"><p className="text-sm font-semibold">Email address</p><p className="mt-2 rounded-xl bg-brand-soft px-4 py-3 text-sm text-brand-muted">{user.email}</p></div><button type="submit" className="button-primary md:col-span-2 md:justify-self-start"><Save className="mr-2 h-4 w-4" />Save profile</button></form>
               </div>
             ) : null}
 
             {activeTab === "addresses" ? (
-              <div className="rounded-[32px] bg-white p-6 shadow-card">
-                <SectionIntro title="Address management" description="Multiple delivery addresses can be stored and used during checkout." />
-                <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl bg-white p-6 shadow-card sm:p-8">
+                <SectionIntro title="Saved Addresses" description="Add home or office addresses and choose the default used at checkout." action={<button type="button" className="button-primary" onClick={() => openAddressForm()}><Plus className="mr-2 h-4 w-4" />Add address</button>} />
+                {showAddressForm ? <form onSubmit={submitAddress} className="mb-8 grid gap-4 rounded-2xl bg-brand-soft p-5 md:grid-cols-2"><SelectField label="Address type" register={addressForm.register("label")} error={addressForm.formState.errors.label} options={["Home","Office"]} /><InputField label="Full name" register={addressForm.register("recipient")} error={addressForm.formState.errors.recipient} /><InputField label="Mobile number" type="tel" register={addressForm.register("phone")} error={addressForm.formState.errors.phone} /><InputField label="Address line 1" register={addressForm.register("line1")} error={addressForm.formState.errors.line1} /><InputField label="Address line 2" register={addressForm.register("line2")} error={addressForm.formState.errors.line2} /><InputField label="Landmark" register={addressForm.register("landmark")} error={addressForm.formState.errors.landmark} /><InputField label="City" register={addressForm.register("city")} error={addressForm.formState.errors.city} /><InputField label="State" register={addressForm.register("state")} error={addressForm.formState.errors.state} /><InputField label="PIN code" register={addressForm.register("pinCode")} error={addressForm.formState.errors.pinCode} /><InputField label="Country" register={addressForm.register("country")} error={addressForm.formState.errors.country} /><label className="flex min-h-11 items-center gap-3 text-sm font-semibold"><input type="checkbox" {...addressForm.register("isDefault")} />Use as default address</label><div className="flex flex-wrap gap-3 md:col-span-2"><button type="submit" className="button-primary">{editingAddress ? "Update address" : "Save address"}</button><button type="button" className="button-secondary" onClick={() => setShowAddressForm(false)}>Cancel</button></div></form> : null}
+                {user.addresses.length ? <div className="grid gap-4 md:grid-cols-2">
                   {user.addresses.map((address) => (
-                    <div key={address.id} className="rounded-[24px] bg-brand-grey p-5">
-                      <div className="flex items-center gap-2 font-semibold"><MapPin className="h-4 w-4" /> {address.label}</div>
-                      <p className="mt-3 text-sm text-brand-black/68">{address.recipient}, {address.line1}</p>
-                      <p className="text-sm text-brand-black/68">{address.city}, {address.state} {address.pinCode}</p>
+                    <div key={address.id} className="rounded-2xl border border-black/8 p-5">
+                      <div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2 font-semibold"><MapPin className="h-4 w-4" />{address.label}</div>{address.isDefault ? <span className="rounded-full bg-brand-cyan/15 px-3 py-1 text-xs font-semibold text-brand-cyan-dark">Default</span> : null}</div>
+                      <p className="mt-4 text-sm font-semibold">{address.recipient} · {address.phone}</p><p className="mt-1 text-sm leading-6 text-brand-muted">{address.line1}{address.line2 ? `, ${address.line2}` : ""}{address.landmark ? `, near ${address.landmark}` : ""}<br />{address.city}, {address.state} {address.pinCode}</p>
+                      <div className="mt-5 flex flex-wrap gap-2"><button type="button" className="button-secondary px-4 py-2" onClick={() => openAddressForm(address)}>Edit</button>{!address.isDefault ? <button type="button" className="button-secondary px-4 py-2" onClick={() => void makeDefaultAddress(address.id)}>Set default</button> : null}<button type="button" className="button-secondary px-4 py-2 text-red-700" onClick={() => void removeAddress(address.id)}>Delete</button></div>
                     </div>
                   ))}
-                </div>
+                </div> : <EmptyState title="No saved addresses" description="Add an address to make checkout faster." />}
               </div>
             ) : null}
 
             {activeTab === "wishlist" ? (
-              <div className="rounded-[32px] bg-white p-6 shadow-card">
-                <SectionIntro title="Wishlist" description="Saved products can be reopened from here or moved into the bag." />
-                {loading ? <LoadingState label="Loading wishlist" /> : <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-2xl bg-white p-6 shadow-card sm:p-8">
+                <SectionIntro title="My Wishlist" description="Your favourites stay saved to this account across devices and sessions." />
+                {productsLoading ? <LoadingState label="Loading wishlist" /> : wishedProducts.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                   {wishedProducts.map((product) =>
                     product ? (
-                      <div key={product.id} className="rounded-[24px] bg-brand-grey p-4">
+                      <div key={product.id} className="rounded-2xl bg-brand-soft p-4">
                         <AssetImage
                           src={product.images[0]}
                           alt={product.name}
@@ -639,23 +1020,24 @@ export function AccountPage() {
                         />
                         <p className="mt-4 font-semibold">{product.name}</p>
                         <p className="mt-1 text-sm text-brand-black/60">{currencyFormatter.format(product.price)}</p>
+                        <div className="mt-4 grid gap-2"><button type="button" className="button-primary" onClick={() => { addToCart({ productId:product.id,variantId:product.variants[0]?.id??product.id,quantity:1 }); toast.success("Added to bag."); }}>Add to bag</button><button type="button" className="text-sm font-semibold text-red-700" onClick={() => void removeWishlistItem(product.id)}>Remove</button></div>
                       </div>
                     ) : null
                   )}
-                </div>}
+                </div> : <EmptyState title="Your wishlist is empty" description="Save products while browsing and they will appear here." action={<Link to="/shop" className="button-primary">Browse products</Link>} />}
               </div>
             ) : null}
 
             {activeTab === "orders" ? (
-              <div className="rounded-[32px] bg-white p-6 shadow-card">
-                <SectionIntro title="Order history" description="Order detail, tracking, cancellation and returns are represented through mock order state." />
-                <div className="space-y-4">
+              <div className="rounded-2xl bg-white p-6 shadow-card sm:p-8">
+                <SectionIntro title="My Orders" description="Review products, payment status, fulfilment progress and tracking information." />
+                {orders.length ? <div className="space-y-4">
                   {orders.map((order) => (
-                    <div key={order.id} className="rounded-[24px] bg-brand-grey p-5">
+                    <div key={order.id} className="rounded-2xl border border-black/8 p-5">
                       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>
                           <p className="font-semibold">{order.orderNumber}</p>
-                          <p className="text-sm text-brand-black/60">{order.createdAt} • {order.status}</p>
+                          <p className="text-sm text-brand-black/60">{new Intl.DateTimeFormat("en-IN",{dateStyle:"medium"}).format(new Date(order.createdAt))} · {order.status} · Payment {order.paymentStatus}</p>
                         </div>
                         <div className="flex flex-wrap gap-3">
                           <Link to="/track-order" className="button-secondary">Track order</Link>
@@ -664,26 +1046,20 @@ export function AccountPage() {
                           <button type="button" className="button-secondary">Return request</button>
                         </div>
                       </div>
-                      <div className="mt-4 text-sm text-brand-black/65">Total {currencyFormatter.format(order.total)} • {order.items.length} items</div>
+                      <div className="mt-5 divide-y divide-black/8 border-y border-black/8">{order.items.map((item)=><div key={item.id} className="flex items-center gap-4 py-4">{item.image?<img src={item.image} alt="" className="h-16 w-14 rounded-xl object-cover"/>:<div className="h-16 w-14 rounded-xl bg-brand-soft"/>}<div className="min-w-0 flex-1"><p className="truncate font-semibold">{item.productName??"Product"}</p><p className="text-xs text-brand-muted">Qty {item.quantity}{item.selectedSize?` · ${item.selectedSize}`:""}</p></div><p className="shrink-0 font-semibold">{currencyFormatter.format(item.total??item.price*item.quantity)}</p></div>)}</div>
+                      <div className="mt-4 flex justify-between text-sm font-semibold"><span>{order.trackingNumber?`Tracking: ${order.trackingNumber}`:"Tracking will appear after dispatch"}</span><span>Total {currencyFormatter.format(order.total)}</span></div>
                     </div>
                   ))}
-                </div>
+                </div> : <EmptyState title="No orders yet" description="Your completed checkouts will appear here." action={<Link to="/shop" className="button-primary">Start shopping</Link>} />}
               </div>
             ) : null}
 
-            {activeTab === "reviews" ? (
-              <div className="rounded-[32px] bg-white p-6 shadow-card">
-                <SectionIntro title="Review submission" description="A validated front-end review form prepared for future API submission and media upload support." />
-                <form onSubmit={submitReview} className="grid gap-5">
-                  <InputField label="Review title" register={reviewForm.register("title")} error={reviewForm.formState.errors.title} />
-                  <SelectField label="Rating" register={reviewForm.register("rating")} error={reviewForm.formState.errors.rating} options={["5", "4", "3", "2", "1"]} />
-                  <TextAreaField label="Review comment" register={reviewForm.register("comment")} error={reviewForm.formState.errors.comment} rows={5} />
-                  {reviewSubmitted ? <SuccessInline label="Review submitted. Media upload wiring can be added when the backend contract is ready." /> : null}
-                  <button type="submit" className="button-primary">
-                    <PackageCheck className="mr-2 h-4 w-4" />
-                    Submit review
-                  </button>
-                </form>
+            {activeTab === "designs" ? <div className="rounded-2xl bg-white p-6 shadow-card sm:p-8"><SectionIntro title="My Custom Designs" description="Reopen saved artwork, continue editing, or return it to the shopping flow." />{designs.length?<div className="grid gap-4 md:grid-cols-2">{designs.map((design)=><div key={design.id} className="rounded-2xl border border-black/8 p-4">{design.previewUrl?<img src={design.previewUrl} alt={`${design.title} preview`} className="aspect-[4/3] w-full rounded-xl bg-brand-soft object-contain"/>:<div className="grid aspect-[4/3] place-items-center rounded-xl bg-brand-soft"><Palette className="h-8 w-8 text-brand-cyan-dark"/></div>}<h3 className="mt-4 truncate font-heading text-xl font-bold">{design.title}</h3><p className="mt-1 text-sm text-brand-muted">{design.productName} · {design.colourName} · {design.selectedSize}</p><div className="mt-4 flex gap-2"><Link to={`/customise/${design.productSlug}/design?savedDesign=${design.id}&colour=${encodeURIComponent(design.colourSlug)}`} className="button-primary flex-1">Edit design</Link><button type="button" aria-label={`Delete ${design.title}`} className="grid h-11 w-11 place-items-center rounded-full border border-black/10 text-red-700" onClick={()=>void deleteDesign(design.id)}><Trash2 className="h-4 w-4"/></button></div></div>)}</div>:<EmptyState title="No saved designs" description="Save a design in the customisation studio and continue it here later." action={<Link to="/customise" className="button-primary">Start designing</Link>}/>}</div> : null}
+
+            {activeTab === "security" ? (
+              <div className="rounded-2xl bg-white p-6 shadow-card sm:p-8">
+                <SectionIntro title={user.hasPassword ? "Change Password" : "Set Password"} description={user.hasPassword ? "Use your current password to securely replace it. Other customer sessions will be signed out." : "Add an email-and-password sign-in method after verifying access to your Google account email."} />
+                {user.hasPassword ? <form onSubmit={submitPassword} className="grid max-w-xl gap-5"><InputField label="Current password" type="password" register={securityForm.register("currentPassword")} error={securityForm.formState.errors.currentPassword}/><InputField label="New password" type="password" register={securityForm.register("newPassword")} error={securityForm.formState.errors.newPassword}/><InputField label="Confirm new password" type="password" register={securityForm.register("confirmPassword")} error={securityForm.formState.errors.confirmPassword}/><div className="flex items-center gap-2 text-sm text-brand-muted"><ShieldCheck className="h-4 w-4 text-brand-cyan-dark"/>Use at least 8 characters with a letter and number.</div><button type="submit" className="button-primary justify-self-start">Change password</button></form> : <div className="max-w-xl"><div className="flex items-start gap-3 rounded-2xl bg-brand-soft p-5"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-cyan-dark"/><p className="text-sm leading-6 text-brand-muted">We’ll email a single-use link to <strong className="text-brand-black">{user.email}</strong>. The link expires after 30 minutes and your password is never sent by email.</p></div><button type="button" disabled={settingPassword} className="button-primary mt-5 disabled:cursor-not-allowed disabled:opacity-60" onClick={() => void requestSetPassword()}>{settingPassword ? "Sending verification…" : "Email secure setup link"}</button>{developmentSetPasswordUrl ? <a href={developmentSetPasswordUrl} className="mt-4 block text-sm font-semibold text-brand-cyan-dark underline">Open development setup link</a> : null}</div>}
               </div>
             ) : null}
           </section>
@@ -731,7 +1107,7 @@ export function TrackOrderPage() {
                 <p className="text-sm text-white/60">Order number</p>
                 <h2 className="mt-2 font-heading text-3xl font-extrabold">{order.orderNumber}</h2>
                 <p className="mt-4 text-sm text-white/72">Status: {order.status}</p>
-                <p className="mt-2 text-sm text-white/72">Payment: {order.paymentMethod}</p>
+                <p className="mt-2 text-sm text-white/72">Payment: {paymentMethodLabel(order.paymentMethod)}</p>
                 {order.trackingNumber ? <p className="mt-2 text-sm text-white/72">Tracking number: {order.trackingNumber}</p> : null}
                 <button type="button" onClick={() => downloadInvoice(order)} className="button-primary mt-5 bg-brand-yellow text-brand-black">Download invoice</button>
               </div>

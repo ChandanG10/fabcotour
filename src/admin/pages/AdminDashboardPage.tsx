@@ -2127,9 +2127,18 @@ export default function AdminDashboardPage() {
                     <select key={`status-${order.id as string}`} defaultValue={String(order.status ?? "Pending")} className={inputClass} onChange={(event) => void adminService.updateOrder(String(order.id), { status: event.target.value }).then(() => { toast.success("Order status updated."); void loadOrders(); })}>
                       {["Pending", "Confirmed", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"].map((status) => <option key={status} value={status}>{status}</option>)}
                     </select>,
-                    <select key={`payment-${order.id as string}`} defaultValue={String(order.payment_status ?? "Pending")} className={inputClass} onChange={(event) => void adminService.updateOrder(String(order.id), { paymentStatus: event.target.value }).then(() => { toast.success("Payment status updated."); void loadOrders(); })}>
-                      {["Pending", "Paid", "Failed", "Refunded"].map((status) => <option key={status} value={status}>{status}</option>)}
-                    </select>,
+                    <div key={`payment-${order.id as string}`} className="min-w-56 space-y-2">
+                      <p className="text-xs font-semibold text-brand-black/75">Payment Status</p>
+                      <select defaultValue={String(order.payment_status ?? "Pending")} className={inputClass} onChange={(event) => void adminService.updateOrder(String(order.id), { paymentStatus: event.target.value }).then(() => { toast.success("Payment status updated."); void loadOrders(); })}>
+                        {["Pending", "Paid", "Failed", "Refunded"].map((status) => <option key={status} value={status}>{status}</option>)}
+                      </select>
+                      <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs text-brand-black/60">
+                        <dt className="font-semibold text-brand-black/75">Payment Gateway</dt><dd>{String(order.payment_gateway ?? "—")}</dd>
+                        <dt className="font-semibold text-brand-black/75">PayU Transaction ID</dt><dd className="break-all tabular-nums">{String(order.payment_transaction_id ?? "—")}</dd>
+                        <dt className="font-semibold text-brand-black/75">PayU Payment ID</dt><dd className="break-all tabular-nums">{String(order.payu_payment_id ?? "—")}</dd>
+                        <dt className="font-semibold text-brand-black/75">Paid Date</dt><dd>{order.paid_at ? new Date(String(order.paid_at)).toLocaleString("en-IN") : "—"}</dd>
+                      </dl>
+                    </div>,
                     <input key={`tracking-${order.id as string}`} defaultValue={String(order.tracking_number ?? "")} className={inputClass} onBlur={(event) => void adminService.updateOrder(String(order.id), { trackingNumber: event.target.value || null }).then(() => { toast.success("Tracking number saved."); })} />,
                     `₹${Number(order.total_amount ?? 0).toLocaleString("en-IN")}`
                   ];})}
@@ -2545,5 +2554,5 @@ function EnquiryTable({
   );
 }
 
-const inputClass = "min-h-11 min-w-0 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none";
+const inputClass = "min-h-11 min-w-0 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus-visible:border-brand-cyan focus-visible:ring-2 focus-visible:ring-brand-cyan/30";
 const textareaClass = "min-w-0 w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none";

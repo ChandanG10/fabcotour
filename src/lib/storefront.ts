@@ -236,7 +236,10 @@ function buildFallbackVariants(product: StoreProduct, gallery: string[], colors:
 
   return safeColors.flatMap((color, colorIndex) =>
     safeSizes.map((size, sizeIndex) => ({
-      id: `${product.id}-${colorIndex}-${sizeIndex}`,
+      // A fallback option is only a UI selection; there is no product_variants
+      // row to reference when an order is created. Reuse the product id so the
+      // checkout can recognise it and omit variantId from the API payload.
+      id: product.id,
       sku: `${product.sku}-${colorIndex + 1}${sizeIndex + 1}`,
       color,
       hex: colorIndex % 2 === 0 ? "#111111" : "#f5f5f5",

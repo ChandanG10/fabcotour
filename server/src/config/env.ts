@@ -14,6 +14,8 @@ const envSchema = z.object({
   DB_NAME: z.string().min(1),
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().default("1d"),
+  CUSTOMER_JWT_EXPIRES_IN: z.string().default("30d"),
+  GOOGLE_CLIENT_ID: z.string().min(20),
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z
@@ -28,6 +30,11 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   SMTP_FROM: z.union([z.string().email(), z.literal("")]).optional(),
   CORPORATE_ENQUIRY_EMAIL: z.union([z.string().email(), z.literal("")]).optional(),
+  PAYU_MERCHANT_KEY: z.string().optional(),
+  PAYU_SALT: z.string().optional(),
+  PAYU_ENV: z.enum(["test", "production"]).default("test"),
+  FRONTEND_URL: z.string().url().optional(),
+  BACKEND_URL: z.string().url().optional(),
   ADMIN_EMAIL: z.string().email(),
   ADMIN_PASSWORD: z.string().min(8)
 });

@@ -3,6 +3,7 @@ import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { AppShell } from "../components/layout/AppShell";
 import { LoadingState } from "../components/common/Ui";
 import { AdminAuthProvider, AdminEntryRedirect, ProtectedAdminRoute } from "../admin/AdminAuth";
+import { CustomerAuthProvider, ProtectedCustomerRoute } from "../customer/CustomerAuth";
 
 const HomePage = lazy(() => import("../pages/HomePage"));
 const ShopPage = lazy(() => import("../pages/ShopPage"));
@@ -16,10 +17,13 @@ const BulkOrdersPage = lazy(() => import("../pages/BusinessPages").then((module)
 const SellerPage = lazy(() => import("../pages/BusinessPages").then((module) => ({ default: module.SellerPage })));
 const CartPage = lazy(() => import("../pages/CommercePages").then((module) => ({ default: module.CartPage })));
 const CheckoutPage = lazy(() => import("../pages/CommercePages").then((module) => ({ default: module.CheckoutPage })));
+const PaymentSuccessPage = lazy(() => import("../pages/CommercePages").then((module) => ({ default: module.PaymentSuccessPage })));
+const PaymentFailedPage = lazy(() => import("../pages/CommercePages").then((module) => ({ default: module.PaymentFailedPage })));
 const AuthPage = lazy(() => import("../pages/CommercePages").then((module) => ({ default: module.AuthPage })));
 const AccountPage = lazy(() => import("../pages/CommercePages").then((module) => ({ default: module.AccountPage })));
 const TrackOrderPage = lazy(() => import("../pages/CommercePages").then((module) => ({ default: module.TrackOrderPage })));
 const InfoPage = lazy(() => import("../pages/InfoPages"));
+const LegalPage = lazy(() => import("../pages/LegalPages"));
 const AdminLoginPage = lazy(() => import("../admin/pages/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("../admin/pages/AdminDashboardPage"));
 
@@ -57,6 +61,7 @@ export function AppRouter() {
           />
         </Route>
 
+        <Route element={<CustomerAuthProvider />}>
         <Route path="/customise/:productSlug/design" element={<CustomDesignerPage />} />
 
         <Route element={<AppShell />}>
@@ -73,14 +78,20 @@ export function AppRouter() {
           <Route path="/bulk-orders" element={<BulkOrdersPage />} />
           <Route path="/start-selling" element={<SellerPage />} />
           <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/checkout" element={<ProtectedCustomerRoute><CheckoutPage /></ProtectedCustomerRoute>} />
+          <Route path="/payment-success" element={<PaymentSuccessPage />} />
+          <Route path="/payment-failed" element={<PaymentFailedPage />} />
           <Route path="/login" element={<AuthPage />} />
-          <Route path="/account" element={<AccountPage />} />
+          <Route path="/register" element={<AuthPage />} />
+          <Route path="/forgot-password" element={<AuthPage />} />
+          <Route path="/reset-password" element={<AuthPage />} />
+          <Route path="/account" element={<ProtectedCustomerRoute><AccountPage /></ProtectedCustomerRoute>} />
+          <Route path="/account/:section" element={<ProtectedCustomerRoute><AccountPage /></ProtectedCustomerRoute>} />
           <Route path="/track-order" element={<TrackOrderPage />} />
           <Route path="/about" element={<InfoPage />} />
           <Route path="/contact" element={<InfoPage />} />
-          <Route path="/privacy-policy" element={<InfoPage />} />
-          <Route path="/terms-and-conditions" element={<InfoPage />} />
+          <Route path="/privacy-policy" element={<LegalPage />} />
+          <Route path="/terms-and-conditions" element={<LegalPage />} />
           <Route path="/shipping-policy" element={<InfoPage />} />
           <Route path="/return-and-refund-policy" element={<InfoPage />} />
           <Route path="/cancellation-policy" element={<InfoPage />} />
@@ -88,6 +99,7 @@ export function AppRouter() {
           <Route path="/payment-policy" element={<InfoPage />} />
           <Route path="/faqs" element={<Navigate to="/contact" replace />} />
           <Route path="*" element={<InfoPage />} />
+        </Route>
         </Route>
       </Routes>
     </Suspense>

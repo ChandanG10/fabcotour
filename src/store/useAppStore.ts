@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { mockOrders, mockUser } from "../data/catalog";
 import { coupons } from "../constants/site";
 import { calculateCustomizationCharge } from "../lib/pricing";
+import { accountService } from "../services/api";
 import type { Address, CartItem, CustomDesign, CustomisedCartData, DesignLayer, Order, User, WishlistItem } from "../types/models";
 
 interface AppState {
@@ -14,6 +14,10 @@ interface AppState {
   activeCoupon?: string;
   customDesign: CustomDesign;
   selectedLayerId?: string;
+  setUser: (user: User | null) => void;
+  setWishlist: (wishlist: WishlistItem[]) => void;
+  setOrders: (orders: Order[]) => void;
+  setAddresses: (addresses: Address[]) => void;
   login: (payload: Pick<User, "email" | "name" | "phone">) => void;
   logout: () => void;
   addAddress: (address: Address) => void;
@@ -81,20 +85,19 @@ const cloneCustomDesign = (design: CustomDesign): CustomDesign => ({
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      user: mockUser,
+      user: null,
       cart: [],
       wishlist: [],
-      orders: mockOrders,
+      orders: [],
       recentProductIds: [],
       customDesign: baseDesign,
       selectedLayerId: baseDesign.layers[0].id,
-      login: ({ email, name, phone }) =>
-        set((state) => ({
-          user: state.user
-            ? { ...state.user, email, name, phone }
-            : { ...mockUser, email, name, phone }
-        })),
-      logout: () => set({ user: null }),
+      setUser: (user) => set({ user }),
+      setWishlist: (wishlist) => set({ wishlist }),
+      setOrders: (orders) => set({ orders }),
+      setAddresses: (addresses) => set((state) => ({ user: state.user ? { ...state.user, addresses } : null })),
+      login: ({ email, name, phone }) => set((state) => ({ user: state.user ? { ...state.user, email, name, phone } : null })),
+      logout: () => set({ user: null, wishlist: [], orders: [] }),
       addAddress: (address) =>
         set((state) => ({
           user: state.user ? { ...state.user, addresses: [...state.user.addresses, address] } : state.user
@@ -128,12 +131,18 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           cart: state.cart.map((item) => (item.id === id ? { ...item, savedForLater: !item.savedForLater } : item))
         })),
-      toggleWishlist: (productId) =>
-        set((state) => ({
-          wishlist: state.wishlist.some((item) => item.productId === productId)
-            ? state.wishlist.filter((item) => item.productId !== productId)
-            : [...state.wishlist, { id: `wish-${Date.now()}`, productId, createdAt: new Date().toISOString() }]
-        })),
+      toggleWishlist: (productId) => {
+        const state = get();
+        if (!state.user) return;
+        const existing = state.wishlist.find((item) => item.productId === productId);
+        const previous = state.wishlist;
+        const next = existing
+          ? previous.filter((item) => item.productId !== productId)
+          : [...previous, { id: `pending-${Date.now()}`, productId, createdAt: new Date().toISOString() }];
+        set({ wishlist: next });
+        const request = existing ? accountService.removeWishlist(productId) : accountService.addWishlist(productId);
+        void request.catch(() => set({ wishlist: previous }));
+      },
       applyCoupon: (code) => {
         const isValid = coupons.some((coupon) => coupon.code.toLowerCase() === code.toLowerCase());
         if (isValid) {
@@ -240,7 +249,25 @@ export const useAppStore = create<AppState>()(
       }
     }),
     {
-      name: "fab-couture-store"
+      name: "fab-couture-store",
+      version: 2,
+      migrate: (persisted) => {
+        const state = persisted as Partial<AppState>;
+        return {
+          cart: state.cart ?? [],
+          recentProductIds: state.recentProductIds ?? [],
+          activeCoupon: state.activeCoupon,
+          customDesign: state.customDesign ?? cloneCustomDesign(baseDesign),
+          selectedLayerId: state.selectedLayerId
+        };
+      },
+      partialize: (state) => ({
+        cart: state.cart,
+        recentProductIds: state.recentProductIds,
+        activeCoupon: state.activeCoupon,
+        customDesign: state.customDesign,
+        selectedLayerId: state.selectedLayerId
+      })
     }
   )
 );

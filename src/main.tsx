@@ -7,11 +7,14 @@ import "@fontsource/manrope/800.css";
 import "./styles/index.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "sonner";
 import { BrowserRouter } from "react-router-dom";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import { AppRouter } from "./routes/AppRouter";
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
 
 class AppErrorBoundary extends React.Component<React.PropsWithChildren, { failed: boolean }> {
   state = { failed: false };
@@ -41,7 +44,7 @@ class AppErrorBoundary extends React.Component<React.PropsWithChildren, { failed
   }
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+const application = (
   <React.StrictMode>
       <HelmetProvider>
       <AppErrorBoundary>
@@ -53,4 +56,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       </AppErrorBoundary>
       </HelmetProvider>
   </React.StrictMode>
+);
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  googleClientId
+    ? <GoogleOAuthProvider clientId={googleClientId}>{application}</GoogleOAuthProvider>
+    : application
 );

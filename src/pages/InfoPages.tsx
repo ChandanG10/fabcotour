@@ -42,29 +42,6 @@ const pageContent: Record<
       "Production-process timeline: Discovery, proofing, approval, production, quality check and dispatch."
     ]
   },
-  "/privacy-policy": {
-    title: "Privacy Policy",
-    description: "How Fabpodd collects, uses, shares and protects personal information.",
-    body: [
-      "Effective date: 20 August 2026. We collect information you provide when creating an account, placing an order, requesting support or submitting artwork, including your name, contact details, delivery address, order information and customisation files.",
-      "We use this information to fulfil orders, process payments, provide customer support, prevent fraud, comply with legal obligations and, where you have agreed, send relevant service or marketing communications.",
-      "We share only the information needed with service providers such as payment gateways, Cloudinary, hosting, analytics and delivery partners. We do not sell personal information. Payment credentials are handled by the payment provider and are not stored by Fabpodd.",
-      "Order and accounting records are retained for the period required by applicable law. Support records and uploaded artwork are retained only as long as reasonably necessary for the stated purpose, dispute handling and legitimate business records.",
-      `You may request access, correction or deletion of eligible personal information, withdraw consent where applicable, or raise a grievance by writing to ${siteConfig.grievanceEmail}. We may verify your identity before processing a request.`,
-      "We use reasonable technical and organisational safeguards, but no internet transmission is completely risk-free. Material policy changes will be posted here with an updated effective date."
-    ]
-  },
-  "/terms-and-conditions": {
-    title: "Terms and Conditions",
-    description: "Terms governing use of the Fabpodd website and purchases.",
-    body: [
-      "By using this website or placing an order, you confirm that you are legally capable of entering a contract and that the information you provide is accurate. Product availability, pricing and offers may change before an order is accepted.",
-      "An order acknowledgement is not final acceptance. Acceptance occurs when payment is confirmed or, for cash on delivery, when the order is confirmed for fulfilment. We may cancel and refund an order affected by stock, pricing, fraud-screening or delivery restrictions.",
-      "Product colours may vary slightly by screen and production batch. Measurements and delivery estimates are approximate. Custom artwork proofs, spelling, placement, colour and size selections approved by the customer are treated as final subject to our customised-product policy.",
-      "You retain rights in artwork you own. By uploading content, you confirm that you have permission to reproduce it and grant Fabpodd the limited right to use it to produce and support your order. Unlawful, infringing or abusive content may be rejected.",
-      "Nothing in these terms limits rights that cannot lawfully be excluded. These terms are governed by the laws of India; courts with jurisdiction over our disclosed business location will have jurisdiction, subject to applicable consumer law."
-    ]
-  },
   "/shipping-policy": {
     title: "Shipping Policy",
     description: "Dispatch, delivery, tracking and damaged-shipment information.",

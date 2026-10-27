@@ -5,6 +5,7 @@ import { z } from "zod";
 import { pool, withTransaction } from "../../db/pool.js";
 import { asyncHandler, HttpError } from "../../utils/http.js";
 import { parseJsonValue } from "../../utils/json.js";
+import { optionalCustomerAuth } from "../../middleware/customer-auth.js";
 
 const addressSchema = z.object({
   id: z.string().max(120).optional(),
@@ -86,7 +87,7 @@ const createOrderSchema = z.object({
     phone: z.string().trim().min(10).max(32)
   }),
   address: addressSchema,
-  paymentMethod: z.literal("Cash on delivery"),
+  paymentMethod: z.enum(["cod", "payu"]),
   couponCode: z.string().trim().max(60).optional(),
   items: z.array(z.union([standardOrderItemSchema, customOrderItemSchema])).min(1).max(50)
 });
@@ -188,7 +189,7 @@ async function fetchOrder(orderNumber: string, email: string) {
 
 export const storeOrdersRouter = Router();
 
-storeOrdersRouter.post("/", asyncHandler(async (request, response) => {
+storeOrdersRouter.post("/", optionalCustomerAuth, asyncHandler(async (request, response) => {
   const payload = createOrderSchema.parse(request.body);
   const reference = await withTransaction(async (connection) => {
     const pricedItems: Array<
@@ -272,14 +273,29 @@ storeOrdersRouter.post("/", asyncHandler(async (request, response) => {
     const token = `${Date.now()}${Math.floor(Math.random() * 1000).toString().padStart(3, "0")}`;
     const orderNumber = `FAB${token}`;
     const invoiceNumber = `FAB-INV-${new Date().getFullYear()}-${token}`;
+    const isPayuOrder = payload.paymentMethod === "payu";
+    const initialOrderStatus = isPayuOrder ? "Pending" : "Confirmed";
+    const userId = request.customer?.id ?? null;
+    const customerName = request.customer?.name ?? payload.customer.name;
+    const customerEmail = request.customer?.email ?? payload.customer.email;
+    const customerPhone = request.customer?.phone || payload.customer.phone;
+    let addressId: string | null = null;
+    if (userId && payload.address.id && z.string().uuid().safeParse(payload.address.id).success) {
+      const [addressRows] = await connection.query<RowDataPacket[]>(
+        "SELECT id FROM addresses WHERE id=? AND user_id=? AND deleted_at IS NULL LIMIT 1",
+        [payload.address.id, userId]
+      );
+      addressId = addressRows[0] ? String(addressRows[0].id) : null;
+    }
     await connection.query(
-      `INSERT INTO orders (id, order_number, invoice_number, status, payment_status, payment_method,
+      `INSERT INTO orders (id, user_id, address_id, order_number, invoice_number, status, payment_status, payment_method, payment_gateway, payment_provider,
         subtotal, shipping_amount, discount_amount, gst_amount, total_amount, customer_name,
         customer_email, customer_phone, shipping_address, stock_committed_at)
-       VALUES (?, ?, ?, 'Confirmed', 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [orderId, orderNumber, invoiceNumber, payload.paymentMethod, subtotal, shipping, discount,
-        Math.round(gst * 100) / 100, total, payload.customer.name, payload.customer.email,
-        payload.customer.phone, JSON.stringify(payload.address)]
+       VALUES (?, ?, ?, ?, ?, ?, 'Pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [orderId, userId, addressId, orderNumber, invoiceNumber, initialOrderStatus, payload.paymentMethod,
+        isPayuOrder ? "payu" : null, isPayuOrder ? "payu" : null, subtotal, shipping, discount,
+        Math.round(gst * 100) / 100, total, customerName, customerEmail,
+        customerPhone, JSON.stringify(payload.address)]
     );
     for (const item of pricedItems) {
       if (item.kind === "custom") {
@@ -320,7 +336,7 @@ storeOrdersRouter.post("/", asyncHandler(async (request, response) => {
       }
       await connection.query("UPDATE products SET stock = stock - ? WHERE id = ?", [item.requested.quantity, item.product.product_id]);
     }
-    return { orderNumber, email: payload.customer.email };
+    return { orderNumber, email: customerEmail };
   });
   response.status(201).json({ item: await fetchOrder(reference.orderNumber, reference.email) });
 }));

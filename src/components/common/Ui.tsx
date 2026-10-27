@@ -10,7 +10,7 @@ import {
   Search,
   Star
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { FieldError, UseFormRegisterReturn } from "react-hook-form";
 import { toast } from "sonner";
 import { useAppStore } from "../../store/useAppStore";
@@ -46,6 +46,8 @@ export function SectionIntro({
 }
 
 export function ProductCard({ product }: { product: Product }) {
+  const navigate = useNavigate();
+  const user = useAppStore((state) => state.user);
   const toggleWishlist = useAppStore((state) => state.toggleWishlist);
   const wishlist = useAppStore((state) => state.wishlist);
   const addToCart = useAppStore((state) => state.addToCart);
@@ -76,6 +78,11 @@ export function ProductCard({ product }: { product: Product }) {
           type="button"
           aria-label="Toggle wishlist"
           onClick={() => {
+            if (!user) {
+              toast.info("Sign in to save products to your wishlist.");
+              navigate("/login", { state: { from: window.location.pathname } });
+              return;
+            }
             toggleWishlist(product.id);
             toast.success(wished ? "Removed from wishlist" : "Added to wishlist");
           }}

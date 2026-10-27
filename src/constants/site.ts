@@ -14,6 +14,10 @@ export const siteConfig = {
   businessAddress: import.meta.env.VITE_BUSINESS_ADDRESS?.trim() || "Bengaluru, Karnataka, India",
   grievanceOfficer: import.meta.env.VITE_GRIEVANCE_OFFICER?.trim() || "Customer Grievance Officer",
   grievanceEmail: import.meta.env.VITE_GRIEVANCE_EMAIL?.trim() || "reachfabpodd@gmail.com",
+  legalBusinessName: import.meta.env.VITE_LEGAL_BUSINESS_NAME?.trim() || "FabPodd",
+  legalJurisdiction: import.meta.env.VITE_LEGAL_JURISDICTION?.trim() || "the courts and consumer forums having jurisdiction over the business address stated on this website",
+  legalLastUpdated: import.meta.env.VITE_LEGAL_LAST_UPDATED?.trim() || "27 October 2026",
+  legalContentApproved: import.meta.env.VITE_LEGAL_CONTENT_APPROVED?.trim().toLowerCase() === "true",
   businessHours: "Monday to Saturday, 10:00 AM to 7:00 PM",
   minimumOrderQuantity: 12
 };

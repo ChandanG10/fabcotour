@@ -5,6 +5,7 @@ export interface Address {
   phone: string;
   line1: string;
   line2?: string;
+  landmark?: string;
   city: string;
   state: string;
   pinCode: string;
@@ -15,11 +16,15 @@ export interface Address {
 export interface User {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone: string;
   role: "customer" | "business";
   avatar: string;
   addresses: Address[];
+  hasPassword: boolean;
+  googleLinked: boolean;
 }
 
 export interface Category {
@@ -339,6 +344,11 @@ export interface OrderItem {
   quantity: number;
   price: number;
   customization?: CustomDesign;
+  productName?: string;
+  image?: string;
+  total?: number;
+  customProductId?: string;
+  type?: "STANDARD_PRODUCT" | "CUSTOMISED_PRODUCT";
 }
 
 export interface Order {
@@ -349,6 +359,10 @@ export interface Order {
   status: "Pending" | "Placed" | "Confirmed" | "Processing" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
   paymentStatus?: "Pending" | "Paid" | "Failed" | "Refunded";
   paymentMethod: string;
+  paymentGateway?: string | null;
+  paymentTransactionId?: string | null;
+  payuPaymentId?: string | null;
+  paidAt?: string | null;
   trackingNumber?: string | null;
   subtotal: number;
   shipping: number;
@@ -357,6 +371,19 @@ export interface Order {
   address: Address;
   items: OrderItem[];
   trackingSteps: string[];
+}
+
+export interface SavedCustomDesign {
+  id: string;
+  title: string;
+  productName: string;
+  productSlug: string;
+  colourName: string;
+  colourSlug: string;
+  selectedSize: string;
+  previewUrl?: string | null;
+  designData: Record<string, unknown>;
+  updatedAt: string;
 }
 
 export interface CorporateEnquiry {

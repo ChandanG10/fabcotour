@@ -15,7 +15,7 @@ import { ObjectInspector } from "../components/customisation/ObjectInspector";
 import { ImageCropper } from "../components/customisation/ImageCropper";
 import { EmptyState, LoadingState } from "../components/common/Ui";
 import { useAsyncData } from "../hooks/useAsyncData";
-import { customisationService } from "../services/api";
+import { accountService, customisationService } from "../services/api";
 import { useAppStore } from "../store/useAppStore";
 import { containedImageBounds, constrainRect, rectInsidePolygon } from "../lib/printingArea";
 import type { CustomPrintArea, CustomPricingBreakdown, ProductSide, CustomisedCartData } from "../types/models";
@@ -144,15 +144,19 @@ export default function CustomDesignerPage() {
   const [dirty, setDirty] = useState(false);
   const [draftRevision, setDraftRevision] = useState(0);
   const [announcement, setAnnouncement] = useState("");
+  const user = useAppStore((state) => state.user);
   const addToCart = useAppStore((state) => state.addToCart);
   const updateCustomCartItem = useAppStore((state) => state.updateCustomCartItem);
   const cartItemId = searchParams.get("cartItem");
+  const savedDesignId = searchParams.get("savedDesign");
+  const loadedSavedDesign = useRef<string | null>(null);
   const editingCartItem = useAppStore((state) => cartItemId ? state.cart.find((item) => item.id === cartItemId && item.customisation)?.customisation : undefined);
   const { data: configuration, loading, error } = useAsyncData(() => customisationService.getConfiguration(productSlug), [productSlug]);
 
   useEffect(() => {
     setPreview360Open(false); setActiveSide("front"); activeSideRef.current = "front"; statesRef.current = blankSides();
     setSelectedObject(null); setDirty(false); setZoom(1); setEditingFrame(false); setDrawingFrame(false); setPendingFrame(null); setCropFile(null);
+    loadedSavedDesign.current = null;
   }, [productSlug]);
 
   const selectedColour = useMemo(() => {
@@ -306,6 +310,48 @@ export default function CustomDesignerPage() {
     void loadSide("front");
     return () => { syncCurrentJson(); canvas.dispose(); fabricCanvas.current = null; };
   }, [configuration, selectedColour, draftKey, editingCartItem, loadSide, pushHistory, syncCurrentJson]);
+
+  useEffect(() => {
+    if (!user || !savedDesignId || !configuration || !selectedColour || !fabricCanvas.current || loadedSavedDesign.current === savedDesignId) return;
+    let cancelled = false;
+    const restoreSavedDesign = async () => {
+      try {
+        const designs = await accountService.getDesigns();
+        const design = designs.find((entry) => entry.id === savedDesignId);
+        if (!design || cancelled) {
+          if (!design) toast.error("That saved design could not be found.");
+          return;
+        }
+        const data = design.designData as {
+          states?: SideStates; quantity?: number; size?: string; methodId?: string;
+          customerNote?: string; originalArtworkUrls?: string[];
+        };
+        if (data.states) {
+          statesRef.current = Object.fromEntries(sides.map((side) => {
+            const area = configuration.printAreas.find((entry) => entry.side === side && entry.colourId === selectedColour.id)
+              ?? configuration.printAreas.find((entry) => entry.side === side && !entry.colourId)!;
+            const restored = data.states?.[side];
+            return [side, { ...blankSide(), ...restored, frame: normalizeStoredFrame(restored?.frame, area) }];
+          })) as SideStates;
+        }
+        setQuantity(Math.max(1, Number(data.quantity ?? 1)));
+        setSize(data.size || design.selectedSize || configuration.sizes[0]?.name || "");
+        setMethodId(data.methodId || configuration.printingMethods[0]?.id || "");
+        setCustomerNote(data.customerNote || "");
+        window.sessionStorage.setItem(`${draftKey}:uploads`, JSON.stringify(data.originalArtworkUrls ?? []));
+        loadedSavedDesign.current = savedDesignId;
+        activeSideRef.current = "front";
+        setActiveSide("front");
+        await loadSide("front");
+        setDirty(false);
+        toast.success("Your saved design is ready to edit.");
+      } catch (restoreError) {
+        toast.error(restoreError instanceof Error ? restoreError.message : "Saved design could not be loaded.");
+      }
+    };
+    void restoreSavedDesign();
+    return () => { cancelled = true; };
+  }, [configuration, draftKey, loadSide, savedDesignId, selectedColour, user]);
 
   useEffect(() => {
     if (!draftKey || !dirty) return;
@@ -529,7 +575,38 @@ export default function CustomDesignerPage() {
     window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey);
   });
 
-  const saveDraft = () => { syncCurrentJson(); window.localStorage.setItem(draftKey, JSON.stringify(statesRef.current)); setDirty(false); toast.success("Design saved on this device."); };
+  const saveDraft = async () => {
+    if (!configuration || !selectedColour || !size || !methodId) return;
+    syncCurrentJson();
+    window.localStorage.setItem(draftKey, JSON.stringify(statesRef.current));
+    setDirty(false);
+    if (!user) {
+      toast.success("Design saved on this device. Sign in to keep it in your account.");
+      return;
+    }
+    try {
+      const originalArtworkUrls = JSON.parse(window.sessionStorage.getItem(`${draftKey}:uploads`) || "[]") as string[];
+      const result = await accountService.saveDesign({
+        customProductId: configuration.id,
+        customColourId: selectedColour.id,
+        selectedSize: size,
+        printingMethodId: methodId,
+        title: `${configuration.name} · ${selectedColour.name}`,
+        designData: { states: statesRef.current, quantity, size, methodId, customerNote, originalArtworkUrls },
+        previewUrl: statesRef.current.front.previewUrl
+      }, savedDesignId || undefined);
+      const nextId = result.item.id;
+      if (!savedDesignId && nextId) {
+        const next = new URLSearchParams(searchParams);
+        next.set("savedDesign", nextId);
+        setSearchParams(next, { replace: true });
+        loadedSavedDesign.current = nextId;
+      }
+      toast.success(savedDesignId ? "Saved design updated." : "Design saved to your account.");
+    } catch (saveError) {
+      toast.error(saveError instanceof Error ? saveError.message : "Design could not be saved to your account.");
+    }
+  };
   const updatePricing = useCallback(async () => {
     if (!configuration || !selectedColour || !size || !methodId) return;
     syncCurrentJson(); setPricingBusy(true);
@@ -615,7 +692,7 @@ export default function CustomDesignerPage() {
   return <div className="designer-shell">
     <header className="designer-topbar">
       <button type="button" aria-label="Return to custom products" className="designer-logo" onClick={() => { if (!dirty || window.confirm("Leave the studio? Your latest changes are saved locally, but have not been added to the bag.")) navigate("/customise"); }}><BrandLogo className="h-10 w-[120px]" /></button>
-      <div className="designer-history"><StudioButton label="Undo" disabled={historyState.historyIndex <= 0} onClick={() => void changeHistory(-1)}><Undo2 /></StudioButton><StudioButton label="Redo" disabled={historyState.historyIndex >= historyState.history.length - 1} onClick={() => void changeHistory(1)}><Redo2 /></StudioButton><StudioButton label="Save" onClick={saveDraft}><Save /></StudioButton></div>
+      <div className="designer-history"><StudioButton label="Undo" disabled={historyState.historyIndex <= 0} onClick={() => void changeHistory(-1)}><Undo2 /></StudioButton><StudioButton label="Redo" disabled={historyState.historyIndex >= historyState.history.length - 1} onClick={() => void changeHistory(1)}><Redo2 /></StudioButton><StudioButton label="Save" onClick={() => void saveDraft()}><Save /></StudioButton></div>
       <div className="designer-actions"><a className="studio-icon-button" href={`mailto:${siteConfig.supportEmail}`}><Mail /><span>Contact</span></a><button ref={tutorialTrigger} type="button" className="studio-text-button" onClick={() => setTutorialOpen(true)}>Tutorials</button><button type="button" className="studio-order-button" onClick={() => setPanel("order")}><ShoppingBag className="h-4 w-4" /><span>Order</span></button></div>
     </header>
     <div className="designer-body">
