@@ -3,6 +3,7 @@ import multer from "multer";
 import { ZodError } from "zod";
 import { HttpError } from "../utils/http.js";
 import { isProduction } from "../config/env.js";
+import { isTransientConnectionLimitError } from "../db/connection-retry.js";
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   void _next;
@@ -45,6 +46,18 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
   if (error instanceof multer.MulterError) {
     response.status(400).json({
       message: error.message
+    });
+    return;
+  }
+
+  if (isTransientConnectionLimitError(error)) {
+    console.error("Database connection limit reached", {
+      method: _request.method,
+      path: _request.originalUrl
+    });
+    response.status(503).json({
+      message: "The database is temporarily busy. Please try again.",
+      code: "DB_CONNECTION_LIMIT"
     });
     return;
   }
