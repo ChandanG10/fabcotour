@@ -2,8 +2,15 @@ import { OAuth2Client } from "google-auth-library";
 import { env } from "../../config/env.js";
 import { HttpError } from "../../utils/http.js";
 
-const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 const allowedIssuers = new Set(["accounts.google.com", "https://accounts.google.com"]);
+
+function getGoogleConfiguration() {
+  const clientId = env.GOOGLE_CLIENT_ID?.trim();
+  if (!clientId) {
+    throw new HttpError(503, "Google sign-in is temporarily unavailable.");
+  }
+  return { clientId, client: new OAuth2Client(clientId) };
+}
 
 export interface VerifiedGoogleIdentity {
   subject: string;
@@ -26,13 +33,14 @@ function safePictureUrl(value: string | undefined) {
 
 export async function verifyGoogleIdToken(idToken: string): Promise<VerifiedGoogleIdentity> {
   try {
-    const ticket = await googleClient.verifyIdToken({ idToken, audience: env.GOOGLE_CLIENT_ID });
+    const { clientId, client } = getGoogleConfiguration();
+    const ticket = await client.verifyIdToken({ idToken, audience: clientId });
     const payload = ticket.getPayload();
     const audience = Array.isArray(payload?.aud) ? payload.aud : [payload?.aud];
     if (
       !payload?.sub || !payload.email || payload.email_verified !== true ||
       !payload.iss || !allowedIssuers.has(payload.iss) ||
-      !audience.includes(env.GOOGLE_CLIENT_ID) ||
+      !audience.includes(clientId) ||
       !payload.exp || payload.exp * 1_000 <= Date.now()
     ) {
       throw new Error("Google token claims are invalid.");

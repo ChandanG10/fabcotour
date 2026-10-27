@@ -25,12 +25,12 @@ import { payuRouter } from "./modules/payu/payu.routes.js";
 import { customerAuthRouter } from "./modules/customer-auth/customer-auth.routes.js";
 import { customerAccountRouter } from "./modules/customer-account/customer-account.routes.js";
 
-export function createApp() {
+export function createApp(options: { configureCors?: boolean } = {}) {
   const app = express();
 
   app.set("trust proxy", 1);
   app.disable("etag");
-  configureCors(app);
+  if (options.configureCors !== false) configureCors(app);
   app.use((_request, response, next) => {
     // CORS varies by request Origin. Do not let browsers or Vercel reuse a
     // response (and its Access-Control-Allow-Origin value) for another origin.
@@ -112,5 +112,3 @@ export function createApp() {
 
   return app;
 }
-
-export const app = createApp();

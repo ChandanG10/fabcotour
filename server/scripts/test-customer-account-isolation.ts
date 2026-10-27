@@ -3,10 +3,12 @@ import { randomUUID } from "node:crypto";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import type { RowDataPacket } from "mysql2/promise";
-import { app } from "../src/app.js";
+import { createApp } from "../src/app.js";
 import { pool } from "../src/db/pool.js";
 import { authenticateCustomer, authenticateGoogleCustomer, customerAuthCookieName, signCustomerToken } from "../src/modules/customer-auth/customer-auth.service.js";
 import type { VerifiedGoogleIdentity } from "../src/modules/customer-auth/google-auth.service.js";
+
+const app = createApp();
 
 const runId = randomUUID();
 const emailA = `isolation-a-${runId}@example.com`;

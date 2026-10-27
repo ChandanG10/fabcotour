@@ -15,7 +15,9 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16),
   JWT_EXPIRES_IN: z.string().default("1d"),
   CUSTOMER_JWT_EXPIRES_IN: z.string().default("30d"),
-  GOOGLE_CLIENT_ID: z.string().min(20),
+  // Google Sign-In is feature-specific. Keeping this optional prevents a
+  // missing OAuth setting from taking down unrelated storefront endpoints.
+  GOOGLE_CLIENT_ID: z.string().min(20).optional(),
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z
@@ -43,7 +45,9 @@ const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   console.error("Invalid environment configuration", parsed.error.flatten().fieldErrors);
-  process.exit(1);
+  // Throw instead of terminating the Vercel worker. The serverless adapter
+  // catches startup failures and returns a CORS-enabled JSON 503 response.
+  throw new Error("Invalid server environment configuration.");
 }
 
 export const env = parsed.data;
